@@ -109,15 +109,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startMultiSelect(initialUri: Uri) {
-        _uiState.update {
-            it.copy(
-                isMultiSelectMode = true,
-                checkedItemUris = setOf(initialUri)
-            )
-        }
-    }
-
     fun clearMultiSelect() {
         _uiState.update {
             it.copy(
@@ -127,8 +118,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun bumpSingleItem(item: ImageItem) {
-        bumpItemsInternal(listOf(item))
+    fun clearStatusMessage() {
+        _uiState.update { it.copy(statusMessage = null) }
     }
 
     fun bumpCheckedItems() {
