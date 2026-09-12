@@ -40,6 +40,65 @@ class MediaBumperRepository(private val context: Context) {
         }
 
     /**
+     * Load all existing images previously bumped into directory A (Pictures/<albumName>).
+     * Sorted by DATE_MODIFIED descending so the most recent memes appear first.
+     */
+    suspend fun loadAlbumImages(albumName: String): List<ImageItem> = withContext(Dispatchers.IO) {
+        val result = mutableListOf<ImageItem>()
+        val projection = arrayOf(
+            MediaStore.Images.Media._ID,
+            MediaStore.Images.Media.DISPLAY_NAME,
+            MediaStore.Images.Media.SIZE
+        )
+
+        val selection: String
+        val selectionArgs: Array<String>
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            selection = "${MediaStore.Images.Media.RELATIVE_PATH} LIKE ?"
+            selectionArgs = arrayOf("${Environment.DIRECTORY_PICTURES}/$albumName/%")
+        } else {
+            selection = "${MediaStore.Images.Media.DATA} LIKE ?"
+            selectionArgs = arrayOf("%/${Environment.DIRECTORY_PICTURES}/$albumName/%")
+        }
+
+        val sortOrder = "${MediaStore.Images.Media.DATE_MODIFIED} DESC, ${MediaStore.Images.Media._ID} DESC"
+
+        try {
+            contentResolver.query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                selectionArgs,
+                sortOrder
+            )?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
+
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idColumn)
+                    val name = cursor.getString(nameColumn) ?: "image_$id.png"
+                    val size = cursor.getLong(sizeColumn)
+                    val contentUri = android.content.ContentUris.withAppendedId(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        id
+                    )
+                    result.add(
+                        ImageItem(
+                            uri = contentUri,
+                            displayName = name,
+                            size = size,
+                            isFromDirectoryA = true
+                        )
+                    )
+                }
+            }
+        } catch (_: Exception) {}
+
+        result
+    }
+
+    /**
      * Bump multiple images to the latest timestamp in the dedicated album directory.
      * Each image receives an incremental timestamp offset (+1 second) to guarantee strict order.
      */

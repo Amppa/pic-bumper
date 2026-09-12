@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class HomeUiState(
-    val selectedItems: List<ImageItem> = emptyList(),
+    val albumItems: List<ImageItem> = emptyList(),
     val checkedItemUris: Set<Uri> = emptySet(),
     val isMultiSelectMode: Boolean = false,
     val isProcessing: Boolean = false,
@@ -43,21 +43,38 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    fun onImagesPicked(uris: List<Uri>) {
+    init {
+        viewModelScope.launch {
+            settings.collect { currentSettings ->
+                loadAlbumImages(currentSettings.albumName)
+            }
+        }
+    }
+
+    fun loadAlbumImages(albumName: String = settings.value.albumName) {
+        viewModelScope.launch {
+            val items = bumperRepository.loadAlbumImages(albumName)
+            _uiState.update {
+                it.copy(
+                    albumItems = items,
+                    checkedItemUris = emptySet(),
+                    isMultiSelectMode = false
+                )
+            }
+        }
+    }
+
+    /**
+     * Triggered when the user taps the floating [+] button and selects external images.
+     * Bumps them directly into the dedicated album directory, then refreshes the gallery.
+     */
+    fun onNewImagesSelected(uris: List<Uri>) {
         if (uris.isEmpty()) return
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessing = true, statusMessage = null) }
             val currentSettings = settings.value
             val resolvedItems = bumperRepository.resolveImageItems(uris, currentSettings.albumName)
-            _uiState.update {
-                it.copy(
-                    selectedItems = resolvedItems,
-                    checkedItemUris = emptySet(),
-                    isMultiSelectMode = false,
-                    isProcessing = false,
-                    statusMessage = "已載入 ${resolvedItems.size} 張圖片，可單擊推進或長按複選"
-                )
-            }
+            bumpItemsInternal(resolvedItems)
         }
     }
 
@@ -95,29 +112,25 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun bumpSingleItem(item: ImageItem) {
-        bumpItems(listOf(item))
+        bumpItemsInternal(listOf(item))
     }
 
     fun bumpCheckedItems() {
         val checkedUris = _uiState.value.checkedItemUris
-        val itemsToBump = _uiState.value.selectedItems.filter { checkedUris.contains(it.uri) }
+        val itemsToBump = _uiState.value.albumItems.filter { checkedUris.contains(it.uri) }
         if (itemsToBump.isNotEmpty()) {
-            bumpItems(itemsToBump)
+            bumpItemsInternal(itemsToBump)
         }
     }
 
-    fun bumpAllItems() {
-        val items = _uiState.value.selectedItems
-        if (items.isNotEmpty()) {
-            bumpItems(items)
-        }
-    }
-
-    private fun bumpItems(items: List<ImageItem>) {
+    private fun bumpItemsInternal(items: List<ImageItem>) {
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessing = true, statusMessage = null) }
             val currentSettings = settings.first()
             val result = bumperRepository.bumpImages(items, currentSettings)
+
+            // Refresh album view immediately so the newly bumped image is at the top
+            loadAlbumImages(currentSettings.albumName)
 
             // Evaluate external image deletion policy
             when (currentSettings.externalDeleteMode) {
@@ -128,7 +141,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                                 isProcessing = false,
                                 isMultiSelectMode = false,
                                 checkedItemUris = emptySet(),
-                                statusMessage = "已推進 ${result.bumpedUris.size} 張圖片至相簿第一位",
+                                statusMessage = "已將 ${result.bumpedUris.size} 張圖片推至最前",
                                 externalUrisToAskDelete = result.externalUrisToAsk
                             )
                         }
@@ -143,7 +156,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                                 isProcessing = false,
                                 isMultiSelectMode = false,
                                 checkedItemUris = emptySet(),
-                                statusMessage = "已推進 ${result.bumpedUris.size} 張圖片至相簿第一位",
+                                statusMessage = "已將 ${result.bumpedUris.size} 張圖片推至最前",
                                 systemDeletePendingUris = result.externalUrisToAsk
                             )
                         }
@@ -172,18 +185,31 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onSystemDeleteFinished() {
         _uiState.update { it.copy(systemDeletePendingUris = null) }
+        loadAlbumImages()
     }
 
-    fun removeCheckedItemsFromList() {
+    /**
+     * Delete checked items from album. Self-owned items in Directory A are deleted silently.
+     */
+    fun deleteCheckedItems() {
         val checkedUris = _uiState.value.checkedItemUris
-        _uiState.update { current ->
-            val remaining = current.selectedItems.filterNot { checkedUris.contains(it.uri) }
-            current.copy(
-                selectedItems = remaining,
-                checkedItemUris = emptySet(),
-                isMultiSelectMode = false,
-                statusMessage = "已移除選取項目"
-            )
+        if (checkedUris.isEmpty()) return
+
+        viewModelScope.launch {
+            val contentResolver = getApplication<Application>().contentResolver
+            checkedUris.forEach { uri ->
+                try {
+                    contentResolver.delete(uri, null, null)
+                } catch (_: Exception) {}
+            }
+            _uiState.update {
+                it.copy(
+                    checkedItemUris = emptySet(),
+                    isMultiSelectMode = false,
+                    statusMessage = "已刪除選取的圖片"
+                )
+            }
+            loadAlbumImages()
         }
     }
 

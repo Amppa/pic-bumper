@@ -35,16 +35,17 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -80,13 +81,14 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
 
     // SAF Document Picker (Launches native Android Files Manager)
     val documentPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
-        viewModel.onImagesPicked(uris)
+        viewModel.onNewImagesSelected(uris)
     }
 
     Scaffold(
@@ -106,7 +108,7 @@ fun HomeScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.removeCheckedItemsFromList() }) {
+                        IconButton(onClick = { viewModel.deleteCheckedItems() }) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Delete selected",
@@ -143,7 +145,7 @@ fun HomeScreen(
                                 modifier = Modifier.padding(top = 2.dp)
                             ) {
                                 Text(
-                                    text = "時序置頂",
+                                    text = settings.albumName,
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -152,6 +154,13 @@ fun HomeScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = { viewModel.loadAlbumImages() }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
                         IconButton(onClick = onNavigateToSettings) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
@@ -165,6 +174,25 @@ fun HomeScreen(
                         titleContentColor = MaterialTheme.colorScheme.onBackground
                     )
                 )
+            }
+        },
+        floatingActionButton = {
+            if (!uiState.isMultiSelectMode) {
+                FloatingActionButton(
+                    onClick = { documentPickerLauncher.launch(arrayOf("image/*")) },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .size(68.dp)
+                        .padding(bottom = 8.dp, end = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add external images to album",
+                        modifier = Modifier.size(34.dp)
+                    )
+                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -210,15 +238,16 @@ fun HomeScreen(
                     }
                 }
 
-                if (uiState.selectedItems.isEmpty()) {
-                    // Empty state: Guide to open Android native file manager
-                    EmptyStateView(
+                if (uiState.albumItems.isEmpty()) {
+                    // Empty state: Pictures/PicBumper is currently empty
+                    EmptyAlbumView(
+                        albumName = settings.albumName,
                         onOpenFileManager = {
                             documentPickerLauncher.launch(arrayOf("image/*"))
                         }
                     )
                 } else {
-                    // Image grid with downsampled thumbnails
+                    // Display existing images in Pictures/<albumName>
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -232,30 +261,20 @@ fun HomeScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "共 ${uiState.selectedItems.size} 張 (單擊推進 / 長按複選)",
+                                text = "過去常用梗圖 (${uiState.albumItems.size} 張) · 單擊置頂 / 長按管理",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-
-                            OutlinedButton(
-                                onClick = { documentPickerLauncher.launch(arrayOf("image/*")) },
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("加選圖片", fontSize = 12.sp)
-                            }
                         }
 
                         LazyVerticalGrid(
                             columns = GridCells.Adaptive(minSize = 105.dp),
-                            contentPadding = PaddingValues(16.dp),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(uiState.selectedItems, key = { it.uri.toString() }) { item ->
+                            items(uiState.albumItems, key = { it.uri.toString() }) { item ->
                                 val isChecked = uiState.checkedItemUris.contains(item.uri)
                                 ImageGridCard(
                                     item = item,
@@ -277,38 +296,6 @@ fun HomeScreen(
                                         }
                                     }
                                 )
-                            }
-                        }
-                    }
-
-                    // Bottom Action Bar: Bump All
-                    if (!uiState.isMultiSelectMode) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.surface,
-                            shadowElevation = 8.dp,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(modifier = Modifier.padding(16.dp)) {
-                                Button(
-                                    onClick = { viewModel.bumpAllItems() },
-                                    enabled = !uiState.isProcessing,
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(50.dp)
-                                ) {
-                                    if (uiState.isProcessing) {
-                                        CircularProgressIndicator(
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    } else {
-                                        Icon(Icons.Default.FlashOn, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("全部推到最前面 (Bump All to Now)", fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
                             }
                         }
                     }
@@ -334,7 +321,7 @@ fun HomeScreen(
                     title = { Text("是否刪除原本的照片？") },
                     text = {
                         Text(
-                            "圖片已成功以最新時序寫入專屬相簿。\n刪除原圖可防止手機相簿中產生重複梗圖。"
+                            "圖片已成功推進時序並移入 ${settings.albumName} 目錄。\n刪除原圖可防止手機相簿中產生重複梗圖。"
                         )
                     },
                     confirmButton = {
@@ -397,22 +384,6 @@ private fun ImageGridCard(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Directory A badge
-        if (item.isFromDirectoryA) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
-                shape = RoundedCornerShape(bottomEnd = 6.dp),
-                modifier = Modifier.align(Alignment.TopStart)
-            ) {
-                Text(
-                    text = "A庫",
-                    fontSize = 9.sp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                )
-            }
-        }
-
         // Selection Checkbox
         if (isMultiSelectMode) {
             Box(
@@ -456,7 +427,8 @@ private fun ImageGridCard(
 }
 
 @Composable
-private fun EmptyStateView(
+private fun EmptyAlbumView(
+    albumName: String,
     onOpenFileManager: () -> Unit
 ) {
     Column(
@@ -484,7 +456,7 @@ private fun EmptyStateView(
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "尚未選取圖片",
+            text = "$albumName 目錄尚無圖片",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onBackground
@@ -493,7 +465,7 @@ private fun EmptyStateView(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "點擊下方按鈕開啟 Android 內建檔案總管。\n可切換任意資料夾、長按多選梗圖，\n選取後一鍵將時序推至相簿最前！",
+            text = "此處會自動顯示您過去使用與置頂過的所有梗圖。\n點擊右下角 [+] 按鈕，即可從手機其他目錄\n選取圖片加入並推進時序！",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -510,9 +482,9 @@ private fun EmptyStateView(
                 .fillMaxWidth()
                 .height(48.dp)
         ) {
-            Icon(Icons.Default.FolderOpen, contentDescription = null)
+            Icon(Icons.Default.Add, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("開啟檔案總管選圖", fontWeight = FontWeight.Medium)
+            Text("加入第一張梗圖", fontWeight = FontWeight.Medium)
         }
     }
 }
