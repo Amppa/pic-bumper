@@ -133,9 +133,14 @@ class MediaBumperRepository(private val context: Context) {
 
                 // 2. Handle original image based on its source directory
                 if (item.isFromDirectoryA) {
-                    // Files originally in directory A are self-owned and can be deleted silently
-                    deleteSelfOwnedUri(item.uri)
-                    selfDeletedUris.add(item.uri)
+                    // Files originally in directory A are typically self-owned and can be deleted silently
+                    val deleted = deleteSelfOwnedUri(item.uri)
+                    if (deleted) {
+                        selfDeletedUris.add(item.uri)
+                    } else {
+                        // Fall back to requesting user permission if ownership was lost (e.g. across app reinstalls)
+                        externalUrisToAsk.add(item.uri)
+                    }
                 } else {
                     externalUrisToAsk.add(item.uri)
                 }

@@ -51,6 +51,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -58,6 +62,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,6 +95,23 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
+    var hasPermission by remember { mutableStateOf(checkMediaPermission(context)) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.values.any { it }
+        hasPermission = granted
+        if (granted) {
+            viewModel.loadAlbumImages()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (!checkMediaPermission(context)) {
+            permissionLauncher.launch(getRequiredPermissions())
+        }
+    }
 
     // SAF Document Picker (Launches native Android Files Manager)
     val documentPickerLauncher = rememberLauncherForActivityResult(
@@ -178,7 +203,13 @@ fun HomeScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.loadAlbumImages(showFeedback = true) }) {
+                        IconButton(onClick = {
+                            if (!checkMediaPermission(context)) {
+                                permissionLauncher.launch(getRequiredPermissions())
+                            } else {
+                                viewModel.loadAlbumImages(showFeedback = true)
+                            }
+                        }) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Refresh",
@@ -261,9 +292,13 @@ fun HomeScreen(
                 }
 
                 if (uiState.albumItems.isEmpty()) {
-                    // Empty state: Pictures/PicBumper is currently empty
+                    // Empty state: Pictures/PicBumper is currently empty or awaiting permission
                     EmptyAlbumView(
                         albumName = settings.albumName,
+                        hasPermission = hasPermission,
+                        onRequestPermission = {
+                            permissionLauncher.launch(getRequiredPermissions())
+                        },
                         onOpenFileManager = {
                             documentPickerLauncher.launch(arrayOf("image/*"))
                         }
@@ -494,6 +529,8 @@ private fun ImageGridCard(
 @Composable
 private fun EmptyAlbumView(
     albumName: String,
+    hasPermission: Boolean,
+    onRequestPermission: () -> Unit,
     onOpenFileManager: () -> Unit
 ) {
     Column(
@@ -520,36 +557,106 @@ private fun EmptyAlbumView(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Text(
-            text = "$albumName 目錄尚無圖片",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        if (!hasPermission) {
+            Text(
+                text = "尚未授予相簿讀取權限",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = "此處會自動顯示您過去使用與置頂過的所有梗圖。\n點擊右下角 [+] 按鈕，即可從手機其他目錄\n選取圖片加入並推進時序！",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            lineHeight = 20.sp
-        )
+            Text(
+                text = "若此相簿已有照片（如重裝前留下的圖片），需要媒體讀取權限才能載入顯示。\n若不授權，您仍可加入新圖片。",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp
+            )
 
-        Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-        Button(
-            onClick = onOpenFileManager,
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("加入第一張梗圖", fontWeight = FontWeight.Medium)
+            Button(
+                onClick = onRequestPermission,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text("授予相片讀取權限", fontWeight = FontWeight.Medium)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onOpenFileManager,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("從外部加入新梗圖", fontWeight = FontWeight.Medium)
+            }
+        } else {
+            Text(
+                text = "$albumName 目錄尚無圖片",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "此處會自動顯示您過去使用與置頂過的所有梗圖。\n點擊右下角 [+] 按鈕，即可從手機其他目錄\n選取圖片加入並推進時序！",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            Button(
+                onClick = onOpenFileManager,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("加入第一張梗圖", fontWeight = FontWeight.Medium)
+            }
         }
+    }
+}
+
+private fun checkMediaPermission(context: Context): Boolean {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
+    } else {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+    }
+}
+
+private fun getRequiredPermissions(): Array<String> {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        arrayOf(
+            Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+        )
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
+    } else {
+        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
     }
 }

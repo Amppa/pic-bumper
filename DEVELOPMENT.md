@@ -68,9 +68,14 @@ To avoid out-of-memory errors (OOM) and quality loss, and to retain full GIF/Web
 
 ### D. Scoped Storage & Directory A (`Pictures/PicBumper`) Lifecycle
 - **Directory A (`Pictures/PicBumper`)**: All bumped images are placed into this public album.
-- **Self-Owned Asset Privilege**: Files created within `Pictures/PicBumper` are owned by Pic Bumper under Android Scoped Storage CDD guidelines.
-  - When an asset already in Directory A is re-bumped, `contentResolver.delete(oldUri, null, null)` executes **silently without any system dialog**.
-- **External Asset Safety**: Files originating from other directories (e.g., `Downloads`, `DCIM`) require user consent. Deletions are batched through `MediaStore.createDeleteRequest` (Android 11+ / API 30+) to prompt only once for all external items.
+- **Media Permissions (`READ_MEDIA_IMAGES` / `READ_EXTERNAL_STORAGE`)**:
+  - Required to read existing images in `Pictures/PicBumper` created by previous app installations (or across re-installs).
+  - Automatically requested on startup or manual refresh.
+- **Self-Owned Asset Privilege**: Files created within `Pictures/PicBumper` by the current installation are owned by Pic Bumper under Android Scoped Storage CDD guidelines.
+  - When a self-owned asset already in Directory A is re-bumped, `contentResolver.delete(oldUri, null, null)` executes **silently without any system dialog**.
+- **External Asset Safety & Reinstall Fallback**:
+  - Files originating from other directories (e.g., `Downloads`, `DCIM`) or from previous installations where ownership was severed require user consent.
+  - Deletions are batched through `MediaStore.createDeleteRequest` (Android 11+ / API 30+) to prompt only once for all external or previous items.
 
 ### E. Memory Optimization (Coil Downsampling)
 Thumbnails in `HomeScreen.kt` strictly configure downsampling parameters:

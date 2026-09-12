@@ -175,6 +175,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Delete checked items from album. Self-owned items in Directory A are deleted silently.
+     * Items from previous installations or external sources will trigger system delete confirmation.
      */
     fun deleteCheckedItems() {
         val checkedUris = _uiState.value.checkedItemUris
@@ -182,19 +183,36 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             val contentResolver = getApplication<Application>().contentResolver
+            val failedUris = mutableListOf<Uri>()
             checkedUris.forEach { uri ->
                 try {
-                    contentResolver.delete(uri, null, null)
-                } catch (_: Exception) {}
+                    val rows = contentResolver.delete(uri, null, null)
+                    if (rows <= 0) {
+                        failedUris.add(uri)
+                    }
+                } catch (_: Exception) {
+                    failedUris.add(uri)
+                }
             }
-            _uiState.update {
-                it.copy(
-                    checkedItemUris = emptySet(),
-                    isMultiSelectMode = false,
-                    statusMessage = "已刪除選取的圖片"
-                )
+
+            if (failedUris.isNotEmpty()) {
+                _uiState.update {
+                    it.copy(
+                        checkedItemUris = emptySet(),
+                        isMultiSelectMode = false,
+                        systemDeletePendingUris = failedUris
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        checkedItemUris = emptySet(),
+                        isMultiSelectMode = false,
+                        statusMessage = "已刪除選取的圖片"
+                    )
+                }
+                loadAlbumImages()
             }
-            loadAlbumImages()
         }
     }
 
