@@ -81,6 +81,12 @@ Open the project root in Android Studio or run via command line:
 ./gradlew assembleDebug
 ```
 
+### Cloud Build via GitHub Actions (Recommended)
+This repository is configured with an automated GitHub Actions CI workflow (`.github/workflows/build-apk.yml`).
+1. Push this repository to GitHub (`git push origin master`).
+2. Visit the **Actions** tab on your GitHub repository page.
+3. Once the build completes (~2 minutes), click on the build run to download the generated **`PicBumper-Debug-APK`** artifact directly to your phone or PC!
+
 ---
 
 ## License
