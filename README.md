@@ -1,5 +1,9 @@
 # Pic Bumper 🚀
 
+<p align="center">
+  <img src="art/logo.png" alt="Pic Bumper Logo" width="128" height="128" style="border-radius: 28px;" />
+</p>
+
 > **Easily bump any meme to the very top of your photo album in seconds.**
 
 Ever wanted to reply with a meme on **Bilibili**, **WeChat**, or social media, but couldn't find it because the image picker only sorts by the latest photos?
