@@ -1,0 +1,1 @@
+# PicBumper Proguard Rules
