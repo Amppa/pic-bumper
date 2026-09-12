@@ -48,7 +48,8 @@ class MediaBumperRepository(private val context: Context) {
         val projection = arrayOf(
             MediaStore.Images.Media._ID,
             MediaStore.Images.Media.DISPLAY_NAME,
-            MediaStore.Images.Media.SIZE
+            MediaStore.Images.Media.SIZE,
+            MediaStore.Images.Media.DATE_MODIFIED
         )
 
         val selection: String
@@ -74,11 +75,13 @@ class MediaBumperRepository(private val context: Context) {
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
                 val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
                 val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
+                val dateModifiedColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
 
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
                     val name = cursor.getString(nameColumn) ?: "image_$id.png"
                     val size = cursor.getLong(sizeColumn)
+                    val dateModified = cursor.getLong(dateModifiedColumn)
                     val contentUri = android.content.ContentUris.withAppendedId(
                         MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                         id
@@ -88,7 +91,8 @@ class MediaBumperRepository(private val context: Context) {
                             uri = contentUri,
                             displayName = name,
                             size = size,
-                            isFromDirectoryA = true
+                            isFromDirectoryA = true,
+                            dateModified = dateModified
                         )
                     )
                 }

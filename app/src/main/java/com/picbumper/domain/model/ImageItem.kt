@@ -6,5 +6,6 @@ data class ImageItem(
     val uri: Uri,
     val displayName: String,
     val size: Long = 0L,
-    val isFromDirectoryA: Boolean = false
+    val isFromDirectoryA: Boolean = false,
+    val dateModified: Long = 0L
 )

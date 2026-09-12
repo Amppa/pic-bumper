@@ -24,12 +24,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -94,12 +96,13 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             if (uiState.isMultiSelectMode) {
-                // Multi-selection Top Bar with Trash & Batch Bump Icons
+                // Multi-selection Top Bar with Delete & Upward Arrow (Bump to top)
                 TopAppBar(
                     title = {
                         Text(
-                            text = "已選取 ${uiState.checkedItemUris.size} 項",
-                            style = MaterialTheme.typography.titleMedium
+                            text = "已選取 ${uiState.checkedItemUris.size} 張",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
                         )
                     },
                     navigationIcon = {
@@ -115,12 +118,23 @@ fun HomeScreen(
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
-                        IconButton(onClick = { viewModel.bumpCheckedItems() }) {
+                        Button(
+                            onClick = { viewModel.bumpCheckedItems() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
                             Icon(
-                                imageVector = Icons.Default.FlashOn,
-                                contentDescription = "Batch Bump",
-                                tint = MaterialTheme.colorScheme.primary
+                                imageVector = Icons.Default.ArrowUpward,
+                                contentDescription = "Bump to top",
+                                modifier = Modifier.size(18.dp)
                             )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("置頂", fontWeight = FontWeight.Bold)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -154,7 +168,7 @@ fun HomeScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.loadAlbumImages() }) {
+                        IconButton(onClick = { viewModel.loadAlbumImages(showFeedback = true) }) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Refresh",
@@ -177,22 +191,20 @@ fun HomeScreen(
             }
         },
         floatingActionButton = {
-            if (!uiState.isMultiSelectMode) {
-                FloatingActionButton(
-                    onClick = { documentPickerLauncher.launch(arrayOf("image/*")) },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .size(68.dp)
-                        .padding(bottom = 8.dp, end = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add external images to album",
-                        modifier = Modifier.size(34.dp)
-                    )
-                }
+            FloatingActionButton(
+                onClick = { documentPickerLauncher.launch(arrayOf("image/*")) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = CircleShape,
+                modifier = Modifier
+                    .size(68.dp)
+                    .padding(bottom = 8.dp, end = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add external images to album",
+                    modifier = Modifier.size(34.dp)
+                )
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -247,54 +259,91 @@ fun HomeScreen(
                         }
                     )
                 } else {
-                    // Display existing images in Pictures/<albumName>
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "過去常用梗圖 (${uiState.albumItems.size} 張) · 單擊置頂 / 長按管理",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                    val recentItems = uiState.recentItems
+                    val olderItems = uiState.olderItems
 
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 105.dp),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(uiState.albumItems, key = { it.uri.toString() }) { item ->
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 105.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        // Section 1: Recent Items (< 30 min)
+                        if (recentItems.isNotEmpty()) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 4.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "近 30 分鐘常用 (${recentItems.size} 張)",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            items(recentItems, key = { it.uri.toString() }) { item ->
                                 val isChecked = uiState.checkedItemUris.contains(item.uri)
                                 ImageGridCard(
                                     item = item,
                                     isChecked = isChecked,
-                                    isMultiSelectMode = uiState.isMultiSelectMode,
                                     context = context,
-                                    onClick = {
-                                        if (uiState.isMultiSelectMode) {
-                                            viewModel.toggleItemCheck(item.uri)
-                                        } else {
-                                            viewModel.bumpSingleItem(item)
-                                        }
-                                    },
-                                    onLongClick = {
-                                        if (!uiState.isMultiSelectMode) {
-                                            viewModel.startMultiSelect(item.uri)
-                                        } else {
-                                            viewModel.toggleItemCheck(item.uri)
-                                        }
+                                    onClick = { viewModel.toggleItemCheck(item.uri) },
+                                    onLongClick = { viewModel.toggleItemCheck(item.uri) }
+                                )
+                            }
+                        }
+
+                        // Section 2: Horizontal Divider & Older Items (>= 30 min)
+                        if (olderItems.isNotEmpty()) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = if (recentItems.isEmpty()) 8.dp else 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(1.dp)
+                                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = if (recentItems.isEmpty()) "所有照片 (${olderItems.size} 張)" else "30 分鐘前 (${olderItems.size} 張)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                        )
                                     }
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(1.dp)
+                                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    )
+                                }
+                            }
+
+                            items(olderItems, key = { it.uri.toString() }) { item ->
+                                val isChecked = uiState.checkedItemUris.contains(item.uri)
+                                ImageGridCard(
+                                    item = item,
+                                    isChecked = isChecked,
+                                    context = context,
+                                    onClick = { viewModel.toggleItemCheck(item.uri) },
+                                    onLongClick = { viewModel.toggleItemCheck(item.uri) }
                                 )
                             }
                         }
@@ -348,7 +397,6 @@ fun HomeScreen(
 private fun ImageGridCard(
     item: ImageItem,
     isChecked: Boolean,
-    isMultiSelectMode: Boolean,
     context: Context,
     onClick: () -> Unit,
     onLongClick: () -> Unit
@@ -384,26 +432,33 @@ private fun ImageGridCard(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Selection Checkbox
-        if (isMultiSelectMode) {
+        // Dim overlay when checked
+        if (isChecked) {
             Box(
                 modifier = Modifier
-                    .padding(6.dp)
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(if (isChecked) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.6f))
-                    .border(1.5.dp, Color.White, CircleShape)
-                    .align(Alignment.TopEnd),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isChecked) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.25f))
+            )
+        }
+
+        // Selection Checkbox
+        Box(
+            modifier = Modifier
+                .padding(6.dp)
+                .size(22.dp)
+                .clip(CircleShape)
+                .background(if (isChecked) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.45f))
+                .border(1.5.dp, if (isChecked) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.8f), CircleShape)
+                .align(Alignment.TopEnd),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isChecked) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp)
+                )
             }
         }
 

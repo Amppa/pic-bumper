@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+const val RECENT_THRESHOLD_SECONDS = 30 * 60L // 30 minutes
+
 data class HomeUiState(
     val albumItems: List<ImageItem> = emptyList(),
     val checkedItemUris: Set<Uri> = emptySet(),
@@ -25,8 +27,21 @@ data class HomeUiState(
     val isProcessing: Boolean = false,
     val statusMessage: String? = null,
     val externalUrisToAskDelete: List<Uri>? = null,
-    val systemDeletePendingUris: List<Uri>? = null
-)
+    val systemDeletePendingUris: List<Uri>? = null,
+    val lastRefreshedAt: Long = System.currentTimeMillis()
+) {
+    val recentItems: List<ImageItem>
+        get() {
+            val threshold = (lastRefreshedAt / 1000) - RECENT_THRESHOLD_SECONDS
+            return albumItems.filter { it.dateModified >= threshold }
+        }
+
+    val olderItems: List<ImageItem>
+        get() {
+            val threshold = (lastRefreshedAt / 1000) - RECENT_THRESHOLD_SECONDS
+            return albumItems.filter { it.dateModified < threshold }
+        }
+}
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -50,14 +65,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun loadAlbumImages(albumName: String = settings.value.albumName) {
+    fun loadAlbumImages(albumName: String = settings.value.albumName, showFeedback: Boolean = false) {
         viewModelScope.launch {
             val items = bumperRepository.loadAlbumImages(albumName)
             _uiState.update {
                 it.copy(
                     albumItems = items,
                     checkedItemUris = emptySet(),
-                    isMultiSelectMode = false
+                    isMultiSelectMode = false,
+                    lastRefreshedAt = System.currentTimeMillis(),
+                    statusMessage = if (showFeedback) "已重新整理相簿時序" else it.statusMessage
                 )
             }
         }
