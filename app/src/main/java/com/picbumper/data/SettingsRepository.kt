@@ -8,7 +8,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.picbumper.domain.model.BumpSettings
-import com.picbumper.domain.model.ExternalDeleteMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -21,7 +20,6 @@ class SettingsRepository(private val context: Context) {
         val OVERRIDE_DATE_MODIFIED = booleanPreferencesKey("override_date_modified")
         val OVERRIDE_DATE_TAKEN = booleanPreferencesKey("override_date_taken")
         val OVERRIDE_EXIF = booleanPreferencesKey("override_exif")
-        val EXTERNAL_DELETE_MODE = stringPreferencesKey("external_delete_mode")
         val ALBUM_NAME = stringPreferencesKey("album_name")
     }
 
@@ -30,12 +28,6 @@ class SettingsRepository(private val context: Context) {
         val overrideDateModified = preferences[PreferencesKeys.OVERRIDE_DATE_MODIFIED] ?: true
         val overrideDateTaken = preferences[PreferencesKeys.OVERRIDE_DATE_TAKEN] ?: true
         val overrideExif = preferences[PreferencesKeys.OVERRIDE_EXIF] ?: true
-        val deleteModeString = preferences[PreferencesKeys.EXTERNAL_DELETE_MODE]
-        val deleteMode = try {
-            if (deleteModeString != null) ExternalDeleteMode.valueOf(deleteModeString) else ExternalDeleteMode.ASK
-        } catch (_: Exception) {
-            ExternalDeleteMode.ASK
-        }
         val albumName = preferences[PreferencesKeys.ALBUM_NAME] ?: "PicBumper"
 
         BumpSettings(
@@ -43,7 +35,6 @@ class SettingsRepository(private val context: Context) {
             overrideDateModified = overrideDateModified,
             overrideDateTaken = overrideDateTaken,
             overrideExif = overrideExif,
-            externalDeleteMode = deleteMode,
             albumName = albumName
         )
     }
@@ -69,12 +60,6 @@ class SettingsRepository(private val context: Context) {
     suspend fun updateOverrideExif(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.OVERRIDE_EXIF] = enabled
-        }
-    }
-
-    suspend fun updateExternalDeleteMode(mode: ExternalDeleteMode) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.EXTERNAL_DELETE_MODE] = mode.name
         }
     }
 

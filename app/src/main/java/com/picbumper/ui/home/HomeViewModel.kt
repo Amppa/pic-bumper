@@ -8,7 +8,6 @@ import com.picbumper.data.BumpResult
 import com.picbumper.data.MediaBumperRepository
 import com.picbumper.data.SettingsRepository
 import com.picbumper.domain.model.BumpSettings
-import com.picbumper.domain.model.ExternalDeleteMode
 import com.picbumper.domain.model.ImageItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -132,41 +131,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             // Refresh album view immediately so the newly bumped image is at the top
             loadAlbumImages(currentSettings.albumName)
 
-            // Evaluate external image deletion policy
-            when (currentSettings.externalDeleteMode) {
-                ExternalDeleteMode.ASK -> {
-                    if (result.externalUrisToAsk.isNotEmpty()) {
-                        _uiState.update {
-                            it.copy(
-                                isProcessing = false,
-                                isMultiSelectMode = false,
-                                checkedItemUris = emptySet(),
-                                statusMessage = "已將 ${result.bumpedUris.size} 張圖片推至最前",
-                                externalUrisToAskDelete = result.externalUrisToAsk
-                            )
-                        }
-                    } else {
-                        finishBumpCycle(result.bumpedUris.size)
-                    }
+            // Always ask for confirmation when external images are bumped
+            if (result.externalUrisToAsk.isNotEmpty()) {
+                _uiState.update {
+                    it.copy(
+                        isProcessing = false,
+                        isMultiSelectMode = false,
+                        checkedItemUris = emptySet(),
+                        statusMessage = "已將 ${result.bumpedUris.size} 張圖片推至最前",
+                        externalUrisToAskDelete = result.externalUrisToAsk
+                    )
                 }
-                ExternalDeleteMode.ALWAYS_DELETE -> {
-                    if (result.externalUrisToAsk.isNotEmpty()) {
-                        _uiState.update {
-                            it.copy(
-                                isProcessing = false,
-                                isMultiSelectMode = false,
-                                checkedItemUris = emptySet(),
-                                statusMessage = "已將 ${result.bumpedUris.size} 張圖片推至最前",
-                                systemDeletePendingUris = result.externalUrisToAsk
-                            )
-                        }
-                    } else {
-                        finishBumpCycle(result.bumpedUris.size)
-                    }
-                }
-                ExternalDeleteMode.ALWAYS_KEEP -> {
-                    finishBumpCycle(result.bumpedUris.size)
-                }
+            } else {
+                finishBumpCycle(result.bumpedUris.size)
             }
         }
     }
