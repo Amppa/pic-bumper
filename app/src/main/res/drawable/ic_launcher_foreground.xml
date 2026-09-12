@@ -4,43 +4,46 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Top solid black square (Target bumped photo) -->
+    <!-- 1. Top solid square (Target bumped photo) -->
     <path
-        android:fillColor="#121212"
-        android:pathData="M28,26 h14 c2.2,0 4,1.8 4,4 v14 c0,2.2 -1.8,4 -4,4 h-14 c-2.2,0 -4,-1.8 -4,-4 v-14 c0,-2.2 1.8,-4 4,-4 z" />
-
-    <!-- Middle outlined square -->
-    <path
-        android:strokeColor="#121212"
-        android:strokeWidth="3.5"
+        android:fillColor="#000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="3"
         android:strokeLineJoin="round"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000"
-        android:pathData="M28,48 h14 c2.2,0 4,1.8 4,4 v14 c0,2.2 -1.8,4 -4,4 h-14 c-2.2,0 -4,-1.8 -4,-4 v-14 c0,-2.2 1.8,-4 4,-4 z" />
+        android:pathData="M 34.75,27.62 h 9.53 a 2.39,2.39 0 0 1 2.39,2.39 v 9.53 a 2.39,2.39 0 0 1 -2.39,2.39 h -9.53 a 2.39,2.39 0 0 1 -2.39,-2.39 v -9.53 a 2.39,2.39 0 0 1 2.39,-2.39 z" />
 
-    <!-- Bottom outlined square -->
+    <!-- 2. Middle square (White fill with black border) -->
     <path
-        android:strokeColor="#121212"
-        android:strokeWidth="3.5"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#000000"
+        android:strokeWidth="3"
         android:strokeLineJoin="round"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000"
-        android:pathData="M28,70 h14 c2.2,0 4,1.8 4,4 v14 c0,2.2 -1.8,4 -4,4 h-14 c-2.2,0 -4,-1.8 -4,-4 v-14 c0,-2.2 1.8,-4 4,-4 z" />
+        android:pathData="M 34.75,46.84 h 9.53 a 2.39,2.39 0 0 1 2.39,2.39 v 9.53 a 2.39,2.39 0 0 1 -2.39,2.39 h -9.53 a 2.39,2.39 0 0 1 -2.39,-2.39 v -9.53 a 2.39,2.39 0 0 1 2.39,-2.39 z" />
 
-    <!-- Upward sweeping arc arrow -->
+    <!-- 3. Bottom square (White fill with black border) -->
     <path
-        android:strokeColor="#121212"
-        android:strokeWidth="4.5"
-        android:strokeLineCap="round"
-        android:fillColor="#00000000"
-        android:pathData="M56,84 C76,84 83,68 81,50 C79,36 68,28 54,34" />
-
-    <!-- Arrow head pointing to the top square -->
-    <path
-        android:fillColor="#121212"
-        android:strokeColor="#121212"
-        android:strokeWidth="1.5"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#000000"
+        android:strokeWidth="3"
         android:strokeLineJoin="round"
-        android:pathData="M50,28 L64,24 L56,38 Z" />
+        android:pathData="M 34.75,66.07 h 9.53 a 2.39,2.39 0 0 1 2.39,2.39 v 9.53 a 2.39,2.39 0 0 1 -2.39,2.39 h -9.53 a 2.39,2.39 0 0 1 -2.39,-2.39 v -9.53 a 2.39,2.39 0 0 1 2.39,-2.39 z" />
+
+    <!-- 4. Upward arc trajectory -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="4.72"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 58.79,36.24 A 18.46,18.46 0 0 1 74.78,45.47 A 18.46,18.46 0 0 1 74.78,63.93 A 18.46,18.46 0 0 1 58.79,73.16" />
+
+    <!-- 5. Arrowhead chevron pointing to top square -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 66.71,30.4 L 58.43,36.08 L 63.8,44.56" />
 
 </vector>
