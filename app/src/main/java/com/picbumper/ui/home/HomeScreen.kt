@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.picbumper.domain.model.ImageItem
 import com.picbumper.ui.home.components.DeleteConfirmDialog
 import com.picbumper.ui.home.components.EmptyAlbumView
 import com.picbumper.ui.home.components.ExternalDeleteDialog

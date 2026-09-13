@@ -2,6 +2,7 @@ package com.picbumper.ui.settings
 
 import android.net.Uri
 import android.provider.DocumentsContract
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
