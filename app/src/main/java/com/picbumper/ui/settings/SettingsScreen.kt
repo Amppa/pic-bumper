@@ -125,7 +125,7 @@ fun SettingsScreen(
                     .padding(horizontal = 4.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "覆蓋時間設定",
+                    text = "時間屬性設定",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -137,11 +137,7 @@ fun SettingsScreen(
                 if (settings.overrideDateTaken) activeExtras.add("DATE_TAKEN")
                 if (settings.overrideExif) activeExtras.add("EXIF")
 
-                val subtitleText = if (activeExtras.isEmpty()) {
-                    "基礎：檔案修改時間 (DATE_MODIFIED) ‧ 點擊設定進階選項"
-                } else {
-                    "基礎：DATE_MODIFIED ‧ 進階：${activeExtras.joinToString(", ")}"
-                }
+                val subtitleText = "選擇相片置頂時所覆寫的時間屬性"
 
                 Text(
                     text = subtitleText,
@@ -184,7 +180,7 @@ fun SettingsScreen(
                     onDismissRequest = { showTimeStrategyDialog = false },
                     title = {
                         Text(
-                            text = "覆蓋時間設定",
+                            text = "時間屬性設定",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge
                         )
@@ -215,7 +211,7 @@ fun SettingsScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "基礎置頂依據，相容性最高且極速不產生重複檔。",
+                                        text = "基礎置頂屬性；社群 App 與檔案總管 (SAF) 主要依據此排序。",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 11.sp
@@ -228,7 +224,7 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Text(
-                                text = "進階相容選項（若您的相簿或軟體仍無法置頂才需勾選）：",
+                                text = "進階（置頂無效果才需勾選）：",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold,
@@ -237,21 +233,21 @@ fun SettingsScreen(
 
                             DialogCheckboxRow(
                                 title = "檔案新增時間 (DATE_ADDED)",
-                                subtitle = "部分系統相簿使用；若開啟，舊圖片可能需複製產生新檔。",
+                                subtitle = "相容於2019之前的 App 或「最近下載」頁面；開啟後會複製產生新檔。",
                                 checked = settings.overrideDateAdded,
                                 onCheckedChange = { viewModel.setOverrideDateAdded(it) }
                             )
 
                             DialogCheckboxRow(
                                 title = "相片拍攝時間 (DATE_TAKEN)",
-                                subtitle = "部分手機原生相簿（如小米、華為、OPPO 相簿）依拍攝時間排序時使用。",
+                                subtitle = "大多數手機內建原生相簿與 Google 相片主要排序依據。",
                                 checked = settings.overrideDateTaken,
                                 onCheckedChange = { viewModel.setOverrideDateTaken(it) }
                             )
 
                             DialogCheckboxRow(
-                                title = "寫入相片 EXIF 資訊時間",
-                                subtitle = "將當前時間直接寫入 JPG 圖檔內部的 EXIF 拍攝資訊標籤。",
+                                title = "EXIF 拍攝時間",
+                                subtitle = "覆寫 JPG 圖檔內部的 EXIF 拍攝資訊標籤。",
                                 checked = settings.overrideExif,
                                 onCheckedChange = { viewModel.setOverrideExif(it) }
                             )
