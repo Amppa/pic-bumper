@@ -17,8 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -106,45 +104,37 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // 2. 覆蓋時間 (Checkbox 垂直單列，無冗餘說明文字)
+            // Override time section header
             Text(
-                text = "2. 覆蓋時間",
+                text = "覆蓋時間",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
             )
 
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                    SettingCheckboxRow(
-                        label = "DATE_ADDED",
-                        checked = settings.overrideDateAdded,
-                        onCheckedChange = { viewModel.setOverrideDateAdded(it) }
-                    )
-                    SettingCheckboxRow(
-                        label = "DATE_MODIFIED",
-                        checked = settings.overrideDateModified,
-                        onCheckedChange = { viewModel.setOverrideDateModified(it) }
-                    )
-                    SettingCheckboxRow(
-                        label = "DATE_TAKEN",
-                        checked = settings.overrideDateTaken,
-                        onCheckedChange = { viewModel.setOverrideDateTaken(it) }
-                    )
-                    SettingCheckboxRow(
-                        label = "EXIF",
-                        checked = settings.overrideExif,
-                        onCheckedChange = { viewModel.setOverrideExif(it) }
-                    )
-                }
-            }
+            SettingCheckboxRow(
+                label = "DATE_ADDED",
+                checked = settings.overrideDateAdded,
+                onCheckedChange = { viewModel.setOverrideDateAdded(it) }
+            )
+            SettingCheckboxRow(
+                label = "DATE_MODIFIED",
+                checked = settings.overrideDateModified,
+                onCheckedChange = { viewModel.setOverrideDateModified(it) }
+            )
+            SettingCheckboxRow(
+                label = "DATE_TAKEN",
+                checked = settings.overrideDateTaken,
+                onCheckedChange = { viewModel.setOverrideDateTaken(it) }
+            )
+            SettingCheckboxRow(
+                label = "EXIF",
+                checked = settings.overrideExif,
+                onCheckedChange = { viewModel.setOverrideExif(it) }
+            )
         }
     }
 }
@@ -158,8 +148,9 @@ private fun SettingCheckboxRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
             .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(

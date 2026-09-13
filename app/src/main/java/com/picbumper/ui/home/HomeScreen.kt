@@ -181,25 +181,17 @@ fun HomeScreen(
                 // Normal Top Bar
                 TopAppBar(
                     title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column {
                             Text(
-                                text = "Pic Bumper",
+                                text = "PicBumper 照片置頂",
                                 fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleLarge
+                                style = MaterialTheme.typography.titleMedium
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                modifier = Modifier.padding(top = 2.dp)
-                            ) {
-                                Text(
-                                    text = settings.albumName,
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
+                            Text(
+                                text = "相簿：Pictures/${settings.albumName}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     },
                     actions = {
@@ -365,7 +357,7 @@ fun HomeScreen(
                                         modifier = Modifier.padding(horizontal = 12.dp)
                                     ) {
                                         Text(
-                                            text = if (recentItems.isEmpty()) "所有照片 (${olderItems.size} 張)" else "30 分鐘前 (${olderItems.size} 張)",
+                                            text = if (recentItems.isEmpty()) "較舊照片 (${olderItems.size} 張)" else "30 分鐘內照片 (${olderItems.size} 張)",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Medium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
