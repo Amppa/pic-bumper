@@ -347,6 +347,20 @@ class MediaBumperRepository(private val context: Context) {
         return false
     }
 
+    /**
+     * Renames an existing image in MediaStore by updating its DISPLAY_NAME.
+     */
+    suspend fun renameImage(uri: Uri, newName: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, newName)
+            }
+            contentResolver.update(uri, values, null, null) > 0
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private fun queryDisplayName(uri: Uri): String? {
         try {
             contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->

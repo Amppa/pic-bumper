@@ -240,6 +240,42 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun renameSelectedItem(inputName: String) {
+        val checkedUris = _uiState.value.checkedItemUris
+        if (checkedUris.size != 1) return
+        val targetUri = checkedUris.first()
+        val targetItem = _uiState.value.albumItems.find { it.uri == targetUri } ?: return
+
+        val trimmedName = inputName.trim()
+        if (trimmedName.isBlank()) return
+
+        // Preserve file extension if user did not include it
+        val oldExt = targetItem.displayName.substringAfterLast('.', "")
+        val finalName = if (oldExt.isNotEmpty() && !trimmedName.endsWith(".$oldExt", ignoreCase = true)) {
+            "$trimmedName.$oldExt"
+        } else {
+            trimmedName
+        }
+
+        viewModelScope.launch {
+            val success = bumperRepository.renameImage(targetUri, finalName)
+            if (success) {
+                _uiState.update {
+                    it.copy(
+                        checkedItemUris = emptySet(),
+                        isMultiSelectMode = false,
+                        statusMessage = "已將檔案重命名為 $finalName"
+                    )
+                }
+                loadAlbumImages()
+            } else {
+                _uiState.update {
+                    it.copy(statusMessage = "重命名失敗，請確認檔案存取權限")
+                }
+            }
+        }
+    }
+
     private fun finishBumpCycle(bumpedCount: Int) {
         _uiState.update {
             it.copy(

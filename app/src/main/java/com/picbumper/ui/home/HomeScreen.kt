@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -95,6 +96,8 @@ fun HomeScreen(
     val context = LocalContext.current
     var hasPermission by remember { mutableStateOf(checkMediaPermission(context)) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renameInputName by remember { mutableStateOf("") }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -145,6 +148,22 @@ fun HomeScreen(
                         }
                     },
                     actions = {
+                        if (uiState.checkedItemUris.size == 1) {
+                            IconButton(onClick = {
+                                val selectedUri = uiState.checkedItemUris.first()
+                                val selectedItem = uiState.albumItems.find { it.uri == selectedUri }
+                                if (selectedItem != null) {
+                                    renameInputName = selectedItem.displayName
+                                    showRenameDialog = true
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Rename selected photo",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
                         IconButton(onClick = { showDeleteConfirmDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
@@ -409,6 +428,45 @@ fun HomeScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                            Text("取消")
+                        }
+                    }
+                )
+            }
+
+            // Dialog: Rename selected photo
+            if (showRenameDialog) {
+                AlertDialog(
+                    onDismissRequest = { showRenameDialog = false },
+                    title = { Text("重命名檔案") },
+                    text = {
+                        Column {
+                            Text(
+                                text = "請輸入新的檔案名稱：",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            OutlinedTextField(
+                                value = renameInputName,
+                                onValueChange = { renameInputName = it },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showRenameDialog = false
+                                viewModel.renameSelectedItem(renameInputName)
+                            },
+                            enabled = renameInputName.trim().isNotEmpty()
+                        ) {
+                            Text("儲存")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showRenameDialog = false }) {
                             Text("取消")
                         }
                     }
