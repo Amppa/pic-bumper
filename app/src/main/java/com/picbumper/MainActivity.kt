@@ -1,5 +1,6 @@
 package com.picbumper
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -69,19 +70,24 @@ fun PicBumperAppContent(
     // System delete launcher for Android 11+ (API 30+) external files
     val deleteLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
-    ) {
-        homeViewModel.onSystemDeleteFinished()
+    ) { result ->
+        val success = result.resultCode == Activity.RESULT_OK
+        homeViewModel.onSystemDeleteFinished(success = success)
     }
 
     LaunchedEffect(homeUiState.systemDeletePendingUris) {
         val pendingUris = homeUiState.systemDeletePendingUris
         if (!pendingUris.isNullOrEmpty()) {
-            val pendingIntent = bumperRepository.buildDeleteIntentSender(pendingUris)
-            if (pendingIntent != null) {
-                val request = IntentSenderRequest.Builder(pendingIntent.intentSender).build()
-                deleteLauncher.launch(request)
-            } else {
-                homeViewModel.onSystemDeleteFinished()
+            try {
+                val pendingIntent = bumperRepository.buildDeleteIntentSender(pendingUris)
+                if (pendingIntent != null) {
+                    val request = IntentSenderRequest.Builder(pendingIntent.intentSender).build()
+                    deleteLauncher.launch(request)
+                } else {
+                    homeViewModel.onSystemDeleteFinished(success = false)
+                }
+            } catch (_: Exception) {
+                homeViewModel.onSystemDeleteFinished(success = false)
             }
         }
     }

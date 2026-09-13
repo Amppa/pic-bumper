@@ -2,11 +2,13 @@ package com.picbumper.data
 
 import android.app.PendingIntent
 import android.content.ContentResolver
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.exifinterface.media.ExifInterface
@@ -240,11 +242,85 @@ class MediaBumperRepository(private val context: Context) {
         }
     }
 
+    /**
+     * Attempts direct deletion of an external original image.
+     * Tries SAF DocumentsContract first, then direct ContentResolver delete.
+     */
+    fun deleteExternalOriginal(uri: Uri): Boolean {
+        // 1. Try DocumentsContract for SAF document URIs
+        if (DocumentsContract.isDocumentUri(context, uri)) {
+            try {
+                if (DocumentsContract.deleteDocument(contentResolver, uri)) {
+                    return true
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 2. Try direct ContentResolver delete
+        try {
+            if (contentResolver.delete(uri, null, null) > 0) {
+                return true
+            }
+        } catch (_: Exception) {}
+
+        // 3. Try deleting via resolved MediaStore URI if applicable
+        val mediaStoreUri = toMediaStoreUri(uri)
+        if (mediaStoreUri != null && mediaStoreUri != uri) {
+            try {
+                if (contentResolver.delete(mediaStoreUri, null, null) > 0) {
+                    return true
+                }
+            } catch (_: Exception) {}
+        }
+
+        return false
+    }
+
+    /**
+     * Resolves a document URI (e.g. from com.android.providers.media.documents)
+     * to a standard MediaStore content URI (content://media/external/images/media/<id>).
+     */
+    fun toMediaStoreUri(uri: Uri): Uri? {
+        val uriStr = uri.toString()
+        if (uriStr.startsWith(MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString())) {
+            return uri
+        }
+
+        if (DocumentsContract.isDocumentUri(context, uri)) {
+            val authority = uri.authority
+            if (authority == "com.android.providers.media.documents") {
+                val docId = DocumentsContract.getDocumentId(uri)
+                val parts = docId.split(":")
+                if (parts.size >= 2 && (parts[0] == "image" || parts[0] == "video")) {
+                    val id = parts[1].toLongOrNull()
+                    if (id != null) {
+                        return ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+                    }
+                }
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Builds a system delete confirmation intent for Android 11+ (API 30+).
+     * Filters input to only valid MediaStore URIs to prevent IllegalArgumentException crashes.
+     */
     fun buildDeleteIntentSender(uris: List<Uri>): PendingIntent? {
         if (uris.isEmpty()) return null
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            MediaStore.createDeleteRequest(contentResolver, uris)
-        } else {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val mediaStoreUris = uris.mapNotNull { toMediaStoreUri(it) }.distinct()
+                if (mediaStoreUris.isNotEmpty()) {
+                    MediaStore.createDeleteRequest(contentResolver, mediaStoreUris)
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+        } catch (_: Exception) {
             null
         }
     }

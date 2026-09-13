@@ -94,6 +94,7 @@ fun HomeScreen(
     val settings by viewModel.settings.collectAsState()
     val context = LocalContext.current
     var hasPermission by remember { mutableStateOf(checkMediaPermission(context)) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -144,7 +145,7 @@ fun HomeScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { viewModel.deleteCheckedItems() }) {
+                        IconButton(onClick = { showDeleteConfirmDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Delete selected",
@@ -385,6 +386,33 @@ fun HomeScreen(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
+            }
+
+            // Dialog: Confirm deleting selected photos from album
+            if (showDeleteConfirmDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteConfirmDialog = false },
+                    title = { Text("確定要刪除照片？") },
+                    text = {
+                        Text("將從相簿中刪除選取的 ${uiState.checkedItemUris.size} 張照片，此操作無法復原。")
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showDeleteConfirmDialog = false
+                                viewModel.deleteCheckedItems()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("刪除")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                            Text("取消")
+                        }
+                    }
+                )
             }
 
             // Dialog: Ask whether to delete external original images

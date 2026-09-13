@@ -157,10 +157,29 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onConfirmExternalDelete() {
-        val uris = _uiState.value.externalUrisToAskDelete
+        val uris = _uiState.value.externalUrisToAskDelete ?: return
         _uiState.update { it.copy(externalUrisToAskDelete = null) }
-        if (!uris.isNullOrEmpty()) {
-            _uiState.update { it.copy(systemDeletePendingUris = uris) }
+
+        viewModelScope.launch {
+            val remainingUris = mutableListOf<Uri>()
+
+            for (uri in uris) {
+                val deleted = bumperRepository.deleteExternalOriginal(uri)
+                if (!deleted) {
+                    remainingUris.add(uri)
+                }
+            }
+
+            if (remainingUris.isEmpty()) {
+                _uiState.update { it.copy(statusMessage = "原圖已成功刪除") }
+            } else {
+                val mediaStoreUris = remainingUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
+                if (mediaStoreUris.isNotEmpty()) {
+                    _uiState.update { it.copy(systemDeletePendingUris = mediaStoreUris) }
+                } else {
+                    _uiState.update { it.copy(statusMessage = "已置頂，但部分原圖受系統保護無法刪除") }
+                }
+            }
         }
     }
 
@@ -168,8 +187,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(externalUrisToAskDelete = null) }
     }
 
-    fun onSystemDeleteFinished() {
-        _uiState.update { it.copy(systemDeletePendingUris = null) }
+    fun onSystemDeleteFinished(success: Boolean = true) {
+        _uiState.update {
+            it.copy(
+                systemDeletePendingUris = null,
+                statusMessage = if (success) "原圖已成功刪除" else "已置頂，但部分原圖受系統保護無法刪除"
+            )
+        }
         loadAlbumImages()
     }
 
