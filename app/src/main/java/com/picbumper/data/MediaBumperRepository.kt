@@ -121,29 +121,49 @@ class MediaBumperRepository(private val context: Context) {
             val timestampSec = (baseNowMillis / 1000) + index
             val timestampMillis = timestampSec * 1000
 
-            // 1. Insert new media entry into dedicated album
-            val newUri = insertImageToAlbum(
-                sourceUri = item.uri,
-                displayName = item.displayName,
-                timestampSec = timestampSec,
-                timestampMillis = timestampMillis,
-                settings = settings
-            )
+            if (item.isFromDirectoryA) {
+                // Option A: In-place timestamp & EXIF update for self-owned assets already in Directory A.
+                // Avoids creating duplicate files with (1) suffix (e.g. xxx (1).jpg) and avoids redundant stream copying.
+                val updatedInPlace = updateImageInPlace(
+                    uri = item.uri,
+                    displayName = item.displayName,
+                    timestampSec = timestampSec,
+                    timestampMillis = timestampMillis,
+                    settings = settings
+                )
 
-            if (newUri != null) {
-                bumpedUris.add(newUri)
-
-                // 2. Handle original image based on its source directory
-                if (item.isFromDirectoryA) {
-                    // Files originally in directory A are typically self-owned and can be deleted silently
-                    val deleted = deleteSelfOwnedUri(item.uri)
-                    if (deleted) {
-                        selfDeletedUris.add(item.uri)
-                    } else {
-                        // Fall back to requesting user permission if ownership was lost (e.g. across app reinstalls)
-                        externalUrisToAsk.add(item.uri)
-                    }
+                if (updatedInPlace) {
+                    bumpedUris.add(item.uri)
                 } else {
+                    // Fallback to insertion & deletion if in-place update fails (e.g. ownership severed across reinstall)
+                    val newUri = insertImageToAlbum(
+                        sourceUri = item.uri,
+                        displayName = item.displayName,
+                        timestampSec = timestampSec,
+                        timestampMillis = timestampMillis,
+                        settings = settings
+                    )
+                    if (newUri != null) {
+                        bumpedUris.add(newUri)
+                        val deleted = deleteSelfOwnedUri(item.uri)
+                        if (deleted) {
+                            selfDeletedUris.add(item.uri)
+                        } else {
+                            externalUrisToAsk.add(item.uri)
+                        }
+                    }
+                }
+            } else {
+                // External image (e.g. Downloads, DCIM): Copy to Directory A and ask to delete original
+                val newUri = insertImageToAlbum(
+                    sourceUri = item.uri,
+                    displayName = item.displayName,
+                    timestampSec = timestampSec,
+                    timestampMillis = timestampMillis,
+                    settings = settings
+                )
+                if (newUri != null) {
+                    bumpedUris.add(newUri)
                     externalUrisToAsk.add(item.uri)
                 }
             }
@@ -154,6 +174,37 @@ class MediaBumperRepository(private val context: Context) {
             selfDeletedUris = selfDeletedUris,
             externalUrisToAsk = externalUrisToAsk
         )
+    }
+
+    private fun updateImageInPlace(
+        uri: Uri,
+        displayName: String,
+        timestampSec: Long,
+        timestampMillis: Long,
+        settings: BumpSettings
+    ): Boolean {
+        val mimeType = contentResolver.getType(uri) ?: inferMimeType(displayName)
+        val values = ContentValues().apply {
+            if (settings.overrideDateAdded) {
+                put(MediaStore.Images.Media.DATE_ADDED, timestampSec)
+            }
+            if (settings.overrideDateModified) {
+                put(MediaStore.Images.Media.DATE_MODIFIED, timestampSec)
+            }
+            if (settings.overrideDateTaken) {
+                put(MediaStore.Images.Media.DATE_TAKEN, timestampMillis)
+            }
+        }
+
+        return try {
+            val rows = contentResolver.update(uri, values, null, null)
+            if (settings.overrideExif && isExifEligible(mimeType, displayName)) {
+                tryUpdateExif(uri, timestampMillis)
+            }
+            rows > 0
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun insertImageToAlbum(
