@@ -11,8 +11,18 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
 @Composable
 fun DeleteConfirmDialog(
@@ -49,6 +59,24 @@ fun RenameDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val focusRequester = remember { FocusRequester() }
+    val initialDotIndex = inputName.lastIndexOf('.')
+    val initialCursorPos = if (initialDotIndex > 0) initialDotIndex else inputName.length
+
+    var tfValue by remember {
+        mutableStateOf(
+            TextFieldValue(
+                text = inputName,
+                selection = TextRange(initialCursorPos)
+            )
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        delay(150)
+        focusRequester.requestFocus()
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("重命名檔案") },
@@ -60,17 +88,22 @@ fun RenameDialog(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
                 OutlinedTextField(
-                    value = inputName,
-                    onValueChange = onNameChange,
+                    value = tfValue,
+                    onValueChange = {
+                        tfValue = it
+                        onNameChange(it.text)
+                    },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester)
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                enabled = inputName.trim().isNotEmpty()
+                enabled = tfValue.text.trim().isNotEmpty()
             ) {
                 Text("儲存")
             }
