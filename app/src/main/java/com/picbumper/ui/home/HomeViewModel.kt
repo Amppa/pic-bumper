@@ -146,7 +146,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         isProcessing = false,
                         isMultiSelectMode = false,
                         checkedItemUris = emptySet(),
-                        statusMessage = "已將 ${result.bumpedUris.size} 張圖片推至最前",
+                        statusMessage = "已將 ${result.bumpedUris.size} 張照片置頂",
                         externalUrisToAskDelete = result.externalUrisToAsk
                     )
                 }
@@ -222,7 +222,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 isProcessing = false,
                 isMultiSelectMode = false,
                 checkedItemUris = emptySet(),
-                statusMessage = "⚡ 已成功將 $bumpedCount 張圖片時序推至現在（最新）！"
+                statusMessage = "已成功置頂 $bumpedCount 張照片"
             )
         }
     }

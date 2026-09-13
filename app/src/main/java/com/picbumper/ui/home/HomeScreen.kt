@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -84,7 +83,6 @@ import coil.size.Precision
 import coil.size.Scale
 import com.picbumper.domain.model.ImageItem
 import com.picbumper.ui.theme.DarkSurfaceVariant
-import com.picbumper.ui.theme.SuccessGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,10 +118,10 @@ fun HomeScreen(
         viewModel.onNewImagesSelected(uris)
     }
 
-    // Auto-dismiss status message banner after 3 seconds
+    // Auto-dismiss status message banner after 4 seconds
     LaunchedEffect(uiState.statusMessage) {
         if (uiState.statusMessage != null) {
-            delay(3000)
+            delay(4000)
             viewModel.clearStatusMessage()
         }
     }
@@ -262,23 +260,12 @@ fun HomeScreen(
                                 .padding(horizontal = 16.dp, vertical = 6.dp),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.FlashOn,
-                                    contentDescription = null,
-                                    tint = SuccessGreen,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = msg,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                            Text(
+                                text = msg,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
                         }
                     }
                 }
