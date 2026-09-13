@@ -35,7 +35,7 @@
         android:strokeWidth="5.60"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M 61.07,34.07 A 22.25,21.20 91.4 0 1 74.83,70.50" />
+        android:pathData="M 61.07,34.07 A 20,20 0 0 1 76.50,52.00 A 20,20 0 0 1 74.83,70.50" />
 
     <!-- 5. Arrowhead chevron pointing to top square -->
     <path

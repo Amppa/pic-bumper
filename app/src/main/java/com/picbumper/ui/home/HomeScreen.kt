@@ -55,6 +55,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -448,7 +449,7 @@ fun HomeScreen(
                             )
                             OutlinedTextField(
                                 value = renameInputName,
-                                onValueChange = { renameInputName = it },
+                                onValueChange = { newName -> renameInputName = newName },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
