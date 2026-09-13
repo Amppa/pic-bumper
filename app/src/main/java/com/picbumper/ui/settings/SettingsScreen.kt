@@ -25,6 +25,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,6 +52,7 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsState()
     var showTimeStrategyDialog by remember { mutableStateOf(false) }
+    var showRenameStrategyDialog by remember { mutableStateOf(false) }
 
     // SAF Directory picker triggered by clicking the album path item
     val folderPickerLauncher = rememberLauncherForActivityResult(
@@ -114,7 +116,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Setting Item 2: Time Strategy (Identical style matching Album Path)
+            // Setting Item 2: Time Strategy
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -148,7 +150,35 @@ fun SettingsScreen(
                 )
             }
 
-            // Dialog: Option 2 Time Strategy Dialog
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Setting Item 3: Rename Strategy
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { showRenameStrategyDialog = true }
+                    .padding(horizontal = 4.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "重命名策略",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = if (settings.silentRename) {
+                        "無彈窗模式 (複製為自持新檔，極速順暢)"
+                    } else {
+                        "系統授權彈窗模式 (保持原檔案 URI)"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Dialog 1: Option 2 Time Strategy Dialog
             if (showTimeStrategyDialog) {
                 AlertDialog(
                     onDismissRequest = { showTimeStrategyDialog = false },
@@ -165,7 +195,6 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            // Section 1: Fixed mandatory item (DATE_MODIFIED)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -206,7 +235,6 @@ fun SettingsScreen(
                                 modifier = Modifier.padding(bottom = 6.dp)
                             )
 
-                            // Item 2: DATE_ADDED
                             DialogCheckboxRow(
                                 title = "檔案新增時間 (DATE_ADDED)",
                                 subtitle = "部分系統相簿使用；若開啟，舊圖片可能需複製產生新檔。",
@@ -214,7 +242,6 @@ fun SettingsScreen(
                                 onCheckedChange = { viewModel.setOverrideDateAdded(it) }
                             )
 
-                            // Item 3: DATE_TAKEN
                             DialogCheckboxRow(
                                 title = "相片拍攝時間 (DATE_TAKEN)",
                                 subtitle = "部分手機原生相簿（如小米、華為、OPPO 相簿）依拍攝時間排序時使用。",
@@ -222,7 +249,6 @@ fun SettingsScreen(
                                 onCheckedChange = { viewModel.setOverrideDateTaken(it) }
                             )
 
-                            // Item 4: EXIF
                             DialogCheckboxRow(
                                 title = "寫入相片 EXIF 資訊時間",
                                 subtitle = "將當前時間直接寫入 JPG 圖檔內部的 EXIF 拍攝資訊標籤。",
@@ -233,6 +259,50 @@ fun SettingsScreen(
                     },
                     confirmButton = {
                         TextButton(onClick = { showTimeStrategyDialog = false }) {
+                            Text("完成", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                )
+            }
+
+            // Dialog 2: Rename Strategy Dialog
+            if (showRenameStrategyDialog) {
+                AlertDialog(
+                    onDismissRequest = { showRenameStrategyDialog = false },
+                    title = {
+                        Text(
+                            text = "重命名策略設定",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            DialogRadioRow(
+                                title = "無彈窗模式 (預設推薦)",
+                                subtitle = "重命名受限的舊照片時，自動複製為新的自持檔案並清理舊副本，100% 零彈窗打擾。",
+                                selected = settings.silentRename,
+                                onClick = { viewModel.setSilentRename(true) }
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            DialogRadioRow(
+                                title = "系統授權彈窗模式",
+                                subtitle = "保持原檔案 URI，重命名非自建照片時由 Android 系統彈出授權對話框。",
+                                selected = !settings.silentRename,
+                                onClick = { viewModel.setSilentRename(false) }
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showRenameStrategyDialog = false }) {
                             Text("完成", fontWeight = FontWeight.Bold)
                         }
                     }
@@ -260,6 +330,44 @@ private fun DialogCheckboxRow(
         Checkbox(
             checked = checked,
             onCheckedChange = onCheckedChange
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp,
+                lineHeight = 14.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun DialogRadioRow(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .clickable { onClick() }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick
         )
         Spacer(modifier = Modifier.width(8.dp))
         Column {

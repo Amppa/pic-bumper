@@ -62,4 +62,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setAlbumName(name: String) {
         viewModelScope.launch { repository.updateAlbumName(name) }
     }
+
+    fun setSilentRename(enabled: Boolean) {
+        viewModelScope.launch { repository.updateSilentRename(enabled) }
+    }
 }

@@ -269,7 +269,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         viewModelScope.launch {
-            val success = bumperRepository.renameImage(targetUri, finalName)
+            val currentSettings = settings.first()
+            val success = bumperRepository.renameImage(
+                uri = targetUri,
+                newName = finalName,
+                silentCopy = currentSettings.silentRename,
+                settings = currentSettings
+            )
             if (success) {
                 _uiState.update {
                     it.copy(
@@ -302,8 +308,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         if (success && pendingAction != null) {
             viewModelScope.launch {
+                val currentSettings = settings.first()
                 val (targetUri, finalName) = pendingAction
-                val renamed = bumperRepository.renameImage(targetUri, finalName)
+                val renamed = bumperRepository.renameImage(
+                    uri = targetUri,
+                    newName = finalName,
+                    silentCopy = currentSettings.silentRename,
+                    settings = currentSettings
+                )
                 if (renamed) {
                     _uiState.update {
                         it.copy(

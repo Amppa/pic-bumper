@@ -21,6 +21,7 @@ class SettingsRepository(private val context: Context) {
         val OVERRIDE_DATE_TAKEN = booleanPreferencesKey("override_date_taken")
         val OVERRIDE_EXIF = booleanPreferencesKey("override_exif")
         val ALBUM_NAME = stringPreferencesKey("album_name")
+        val SILENT_RENAME = booleanPreferencesKey("silent_rename")
     }
 
     val settingsFlow: Flow<BumpSettings> = context.dataStore.data.map { preferences ->
@@ -29,13 +30,15 @@ class SettingsRepository(private val context: Context) {
         val overrideDateTaken = preferences[PreferencesKeys.OVERRIDE_DATE_TAKEN] ?: false
         val overrideExif = preferences[PreferencesKeys.OVERRIDE_EXIF] ?: false
         val albumName = preferences[PreferencesKeys.ALBUM_NAME] ?: "PicBumper"
+        val silentRename = preferences[PreferencesKeys.SILENT_RENAME] ?: true
 
         BumpSettings(
             overrideDateAdded = overrideDateAdded,
             overrideDateModified = overrideDateModified,
             overrideDateTaken = overrideDateTaken,
             overrideExif = overrideExif,
-            albumName = albumName
+            albumName = albumName,
+            silentRename = silentRename
         )
     }
 
@@ -67,6 +70,12 @@ class SettingsRepository(private val context: Context) {
         val sanitized = name.trim().ifEmpty { "PicBumper" }
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.ALBUM_NAME] = sanitized
+        }
+    }
+
+    suspend fun updateSilentRename(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SILENT_RENAME] = enabled
         }
     }
 }

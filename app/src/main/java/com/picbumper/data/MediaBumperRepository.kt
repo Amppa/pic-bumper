@@ -457,17 +457,45 @@ class MediaBumperRepository(private val context: Context) {
 
     /**
      * Renames an existing image in MediaStore by updating its DISPLAY_NAME.
+     * If direct update fails due to MediaStore write restrictions and silentCopy is enabled,
+     * it copies the image as a new self-owned file with newName and cleans up the old entry.
      */
-    suspend fun renameImage(uri: Uri, newName: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun renameImage(
+        uri: Uri,
+        newName: String,
+        silentCopy: Boolean = true,
+        settings: BumpSettings? = null
+    ): Boolean = withContext(Dispatchers.IO) {
         val targetUri = toMediaStoreUri(uri) ?: uri
+
+        // 1. Try direct in-place update first
         try {
             val values = ContentValues().apply {
                 put(MediaStore.Images.Media.DISPLAY_NAME, newName)
             }
-            contentResolver.update(targetUri, values, null, null) > 0
-        } catch (_: Exception) {
-            false
+            if (contentResolver.update(targetUri, values, null, null) > 0) {
+                return@withContext true
+            }
+        } catch (_: Exception) {}
+
+        // 2. If direct update failed and silentCopy is enabled, fallback to silent copy & replace
+        if (silentCopy && settings != null) {
+            val timestampSec = System.currentTimeMillis() / 1000
+            val timestampMillis = timestampSec * 1000
+            val newUri = insertImageToAlbum(
+                sourceUri = uri,
+                displayName = newName,
+                timestampSec = timestampSec,
+                timestampMillis = timestampMillis,
+                settings = settings
+            )
+            if (newUri != null) {
+                deleteSelfOwnedUri(uri)
+                return@withContext true
+            }
         }
+
+        return@withContext false
     }
 
     private fun queryDisplayName(uri: Uri): String? {
