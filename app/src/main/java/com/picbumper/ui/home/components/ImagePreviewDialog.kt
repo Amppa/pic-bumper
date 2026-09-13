@@ -14,8 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -133,20 +133,21 @@ fun ImagePreviewDialog(
                             .height(48.dp),
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = Color.Black
                         )
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Navigation,
+                            imageVector = Icons.Default.ArrowUpward,
                             contentDescription = null,
-                            tint = Color.White
+                            tint = Color.Black
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "推進置頂 (Bump to Top)",
+                            text = "推進置頂",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = Color.Black
                         )
                     }
                 }
