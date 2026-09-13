@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -85,40 +84,26 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
-            // 1. 相簿路徑: Pictures / [底線名稱 (點一下喚起系統選取)]
-            Text(
-                text = "1. 相簿路徑",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            Row(
+            // Album path setting item (Material 3 standard preference style)
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
                     .clickable { folderPickerLauncher.launch(null) }
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 4.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "Pictures / ",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontSize = 17.sp,
+                    text = "相簿路徑",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Pictures/${settings.albumName}",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                Column {
-                    Text(
-                        text = settings.albumName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(28.dp))
