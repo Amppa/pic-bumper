@@ -50,6 +50,10 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateBack: () -> Unit
 ) {
+    BackHandler {
+        onNavigateBack()
+    }
+
     val settings by viewModel.settings.collectAsState()
     var showTimeStrategyDialog by remember { mutableStateOf(false) }
     var showRenameStrategyDialog by remember { mutableStateOf(false) }

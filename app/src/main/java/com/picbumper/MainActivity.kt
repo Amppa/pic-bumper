@@ -8,7 +8,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -117,7 +122,19 @@ fun PicBumperAppContent(
         }
     }
 
-    Crossfade(targetState = currentScreen, label = "ScreenTransition") { screen ->
+    AnimatedContent(
+        targetState = currentScreen,
+        label = "ScreenTransition",
+        transitionSpec = {
+            if (targetState == Screen.SETTINGS) {
+                (slideInHorizontally { fullWidth -> fullWidth } + fadeIn())
+                    .togetherWith(slideOutHorizontally { fullWidth -> -fullWidth / 3 } + fadeOut())
+            } else {
+                (slideInHorizontally { fullWidth -> -fullWidth / 3 } + fadeIn())
+                    .togetherWith(slideOutHorizontally { fullWidth -> fullWidth } + fadeOut())
+            }
+        }
+    ) { screen ->
         when (screen) {
             Screen.HOME -> HomeScreen(
                 viewModel = homeViewModel,
