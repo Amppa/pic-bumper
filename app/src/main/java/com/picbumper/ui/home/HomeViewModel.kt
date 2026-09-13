@@ -132,6 +132,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun bumpSingleItem(uri: Uri) {
+        val item = _uiState.value.albumItems.find { it.uri == uri }
+        if (item != null) {
+            bumpItemsInternal(listOf(item))
+        }
+    }
+
     private fun bumpItemsInternal(items: List<ImageItem>) {
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessing = true, statusMessage = null) }

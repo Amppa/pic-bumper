@@ -53,9 +53,11 @@ import com.picbumper.ui.home.components.ExternalDeleteDialog
 import com.picbumper.ui.home.components.FloatingStatusCapsule
 import com.picbumper.ui.home.components.HomeTopBar
 import com.picbumper.ui.home.components.ImageGridCard
+import com.picbumper.ui.home.components.ImagePreviewDialog
 import com.picbumper.ui.home.components.RenameDialog
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -68,6 +70,7 @@ fun HomeScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var renameInputName by remember { mutableStateOf("") }
+    var previewItem by remember { mutableStateOf<ImageItem?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -193,13 +196,20 @@ fun HomeScreen(
                                 }
                             }
 
-                            items(recentItems, key = { it.uri.toString() }) { item ->
+                            items(recentItems, key = { it.uri }) { item ->
                                 val isChecked = uiState.checkedItemUris.contains(item.uri)
                                 ImageGridCard(
                                     item = item,
                                     isChecked = isChecked,
+                                    isMultiSelectMode = uiState.isMultiSelectMode,
                                     context = context,
-                                    onClick = { viewModel.toggleItemCheck(item.uri) },
+                                    onClick = {
+                                        if (uiState.isMultiSelectMode) {
+                                            viewModel.toggleItemCheck(item.uri)
+                                        } else {
+                                            previewItem = item
+                                        }
+                                    },
                                     onLongClick = { viewModel.toggleItemCheck(item.uri) }
                                 )
                             }
@@ -242,13 +252,20 @@ fun HomeScreen(
                                 }
                             }
 
-                            items(olderItems, key = { it.uri.toString() }) { item ->
+                            items(olderItems, key = { it.uri }) { item ->
                                 val isChecked = uiState.checkedItemUris.contains(item.uri)
                                 ImageGridCard(
                                     item = item,
                                     isChecked = isChecked,
+                                    isMultiSelectMode = uiState.isMultiSelectMode,
                                     context = context,
-                                    onClick = { viewModel.toggleItemCheck(item.uri) },
+                                    onClick = {
+                                        if (uiState.isMultiSelectMode) {
+                                            viewModel.toggleItemCheck(item.uri)
+                                        } else {
+                                            previewItem = item
+                                        }
+                                    },
                                     onLongClick = { viewModel.toggleItemCheck(item.uri) }
                                 )
                             }
@@ -273,6 +290,17 @@ fun HomeScreen(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
+            }
+
+            // Dialog: Full-screen Image Preview Dialog
+            previewItem?.let { item ->
+                ImagePreviewDialog(
+                    item = item,
+                    onDismiss = { previewItem = null },
+                    onBump = {
+                        viewModel.bumpSingleItem(item.uri)
+                    }
+                )
             }
 
             // Dialog: Confirm deleting selected photos from album

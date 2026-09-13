@@ -34,23 +34,28 @@ import coil.size.Scale
 import com.picbumper.domain.model.ImageItem
 import com.picbumper.ui.theme.DarkSurfaceVariant
 
+import androidx.compose.runtime.remember
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ImageGridCard(
     item: ImageItem,
     isChecked: Boolean,
+    isMultiSelectMode: Boolean = false,
     context: Context,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    // Coil Downsampling: size(240), Scale.FIT, Precision.INEXACT keeps JVM heap minimal
-    val imageRequest = ImageRequest.Builder(context)
-        .data(item.uri)
-        .size(240)
-        .scale(Scale.FIT)
-        .precision(Precision.INEXACT)
-        .crossfade(true)
-        .build()
+    // Coil Downsampling with remember cache
+    val imageRequest = remember(item.uri) {
+        ImageRequest.Builder(context)
+            .data(item.uri)
+            .size(200)
+            .scale(Scale.FILL)
+            .precision(Precision.INEXACT)
+            .crossfade(false)
+            .build()
+    }
 
     Box(
         modifier = Modifier
@@ -83,42 +88,27 @@ fun ImageGridCard(
             )
         }
 
-        // Selection Checkbox
-        Box(
-            modifier = Modifier
-                .padding(6.dp)
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(if (isChecked) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.45f))
-                .border(1.5.dp, if (isChecked) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.8f), CircleShape)
-                .align(Alignment.TopEnd),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isChecked) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Selected",
-                    tint = Color.White,
-                    modifier = Modifier.size(14.dp)
-                )
+        // Selection Checkbox (Only shown in multi-select mode or when checked)
+        if (isMultiSelectMode || isChecked) {
+            Box(
+                modifier = Modifier
+                    .padding(6.dp)
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(if (isChecked) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.45f))
+                    .border(1.5.dp, if (isChecked) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.8f), CircleShape)
+                    .align(Alignment.TopEnd),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isChecked) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Selected",
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
             }
-        }
-
-        // Display Name footer
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.65f))
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 4.dp, vertical = 2.dp)
-        ) {
-            Text(
-                text = item.displayName,
-                fontSize = 10.sp,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         }
     }
 }
