@@ -37,15 +37,18 @@ fun ImageGridCard(
     item: ImageItem,
     isChecked: Boolean,
     isMultiSelectMode: Boolean = false,
+    thumbnailSize: Int = 150,
     context: Context,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    // Coil Downsampling with remember cache
-    val imageRequest = remember(item.uri) {
+    // Coil Downsampling with cache key isolation based on resolution
+    val imageRequest = remember(item.uri, thumbnailSize) {
         ImageRequest.Builder(context)
             .data(item.uri)
-            .size(200)
+            .memoryCacheKey("${item.uri}_$thumbnailSize")
+            .diskCacheKey("${item.uri}_$thumbnailSize")
+            .size(thumbnailSize)
             .scale(Scale.FILL)
             .precision(Precision.INEXACT)
             .crossfade(false)

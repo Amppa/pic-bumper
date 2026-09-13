@@ -58,6 +58,7 @@ fun SettingsScreen(
     val settings by viewModel.settings.collectAsState()
     var showTimeStrategyDialog by remember { mutableStateOf(false) }
     var showRenameStrategyDialog by remember { mutableStateOf(false) }
+    var showThumbnailSizeDialog by remember { mutableStateOf(false) }
 
     // SAF Directory picker triggered by clicking the album path item
     val folderPickerLauncher = rememberLauncherForActivityResult(
@@ -174,6 +175,35 @@ fun SettingsScreen(
                     } else {
                         "系統授權彈窗模式 (保持原檔案 URI)"
                     },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Setting Item 4: Thumbnail Quality & Resolution
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { showThumbnailSizeDialog = true }
+                    .padding(horizontal = 4.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "縮圖品質與解析度",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                val sizeText = when (settings.thumbnailSize) {
+                    100 -> "超極速模式 (100px) - 省電高流暢"
+                    240 -> "高清精細模式 (240px) - 超清晰視覺"
+                    else -> "標準流暢模式 (150px - 預設推薦)"
+                }
+                Text(
+                    text = sizeText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -309,9 +339,65 @@ fun SettingsScreen(
                     }
                 )
             }
+
+            // Dialog 3: Thumbnail Size Dialog
+            if (showThumbnailSizeDialog) {
+                AlertDialog(
+                    onDismissRequest = { showThumbnailSizeDialog = false },
+                    title = {
+                        Text(
+                            text = "縮圖品質與解析度",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            DialogRadioRow(
+                                title = "超極速模式 (100px)",
+                                subtitle = "極微縮圖，單張僅 ~40KB 記憶體，速度提升 500%，適合 100+ 海量梗圖。",
+                                selected = settings.thumbnailSize == 100,
+                                onClick = { viewModel.setThumbnailSize(100) }
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            DialogRadioRow(
+                                title = "標準流暢模式 (150px - 預設推薦)",
+                                subtitle = "平衡速度與解析度，記憶體節省 60%，滾動極度順暢。",
+                                selected = settings.thumbnailSize == 150,
+                                onClick = { viewModel.setThumbnailSize(150) }
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            DialogRadioRow(
+                                title = "高清精細模式 (240px)",
+                                subtitle = "縮圖細節清晰細緻，適合旗艦手機或圖片數量較少時使用。",
+                                selected = settings.thumbnailSize == 240,
+                                onClick = { viewModel.setThumbnailSize(240) }
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showThumbnailSizeDialog = false }) {
+                            Text("完成", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                )
+            }
         }
     }
 }
+
 
 @Composable
 private fun DialogCheckboxRow(

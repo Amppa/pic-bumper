@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.picbumper.domain.model.BumpSettings
@@ -22,6 +23,7 @@ class SettingsRepository(private val context: Context) {
         val OVERRIDE_EXIF = booleanPreferencesKey("override_exif")
         val ALBUM_NAME = stringPreferencesKey("album_name")
         val SILENT_RENAME = booleanPreferencesKey("silent_rename")
+        val THUMBNAIL_SIZE = intPreferencesKey("thumbnail_size")
     }
 
     val settingsFlow: Flow<BumpSettings> = context.dataStore.data.map { preferences ->
@@ -31,6 +33,7 @@ class SettingsRepository(private val context: Context) {
         val overrideExif = preferences[PreferencesKeys.OVERRIDE_EXIF] ?: false
         val albumName = preferences[PreferencesKeys.ALBUM_NAME] ?: "PicBumper"
         val silentRename = preferences[PreferencesKeys.SILENT_RENAME] ?: true
+        val thumbnailSize = preferences[PreferencesKeys.THUMBNAIL_SIZE] ?: 150
 
         BumpSettings(
             overrideDateAdded = overrideDateAdded,
@@ -38,7 +41,8 @@ class SettingsRepository(private val context: Context) {
             overrideDateTaken = overrideDateTaken,
             overrideExif = overrideExif,
             albumName = albumName,
-            silentRename = silentRename
+            silentRename = silentRename,
+            thumbnailSize = thumbnailSize
         )
     }
 
@@ -78,4 +82,11 @@ class SettingsRepository(private val context: Context) {
             preferences[PreferencesKeys.SILENT_RENAME] = enabled
         }
     }
+
+    suspend fun updateThumbnailSize(size: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.THUMBNAIL_SIZE] = size
+        }
+    }
 }
+

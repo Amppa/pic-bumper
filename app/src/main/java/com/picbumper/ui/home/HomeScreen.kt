@@ -197,19 +197,27 @@ fun HomeScreen(
 
                             items(recentItems, key = { it.uri }) { item ->
                                 val isChecked = uiState.checkedItemUris.contains(item.uri)
-                                ImageGridCard(
-                                    item = item,
-                                    isChecked = isChecked,
-                                    isMultiSelectMode = uiState.isMultiSelectMode,
-                                    context = context,
-                                    onClick = {
+                                val onClick = remember(item.uri, uiState.isMultiSelectMode) {
+                                    {
                                         if (uiState.isMultiSelectMode) {
                                             viewModel.toggleItemCheck(item.uri)
                                         } else {
                                             previewItem = item
                                         }
-                                    },
-                                    onLongClick = { viewModel.toggleItemCheck(item.uri) }
+                                    }
+                                }
+                                val onLongClick = remember(item.uri) {
+                                    { viewModel.toggleItemCheck(item.uri) }
+                                }
+
+                                ImageGridCard(
+                                    item = item,
+                                    isChecked = isChecked,
+                                    isMultiSelectMode = uiState.isMultiSelectMode,
+                                    thumbnailSize = settings.thumbnailSize,
+                                    context = context,
+                                    onClick = onClick,
+                                    onLongClick = onLongClick
                                 )
                             }
                         }
@@ -253,19 +261,27 @@ fun HomeScreen(
 
                             items(olderItems, key = { it.uri }) { item ->
                                 val isChecked = uiState.checkedItemUris.contains(item.uri)
-                                ImageGridCard(
-                                    item = item,
-                                    isChecked = isChecked,
-                                    isMultiSelectMode = uiState.isMultiSelectMode,
-                                    context = context,
-                                    onClick = {
+                                val onClick = remember(item.uri, uiState.isMultiSelectMode) {
+                                    {
                                         if (uiState.isMultiSelectMode) {
                                             viewModel.toggleItemCheck(item.uri)
                                         } else {
                                             previewItem = item
                                         }
-                                    },
-                                    onLongClick = { viewModel.toggleItemCheck(item.uri) }
+                                    }
+                                }
+                                val onLongClick = remember(item.uri) {
+                                    { viewModel.toggleItemCheck(item.uri) }
+                                }
+
+                                ImageGridCard(
+                                    item = item,
+                                    isChecked = isChecked,
+                                    isMultiSelectMode = uiState.isMultiSelectMode,
+                                    thumbnailSize = settings.thumbnailSize,
+                                    context = context,
+                                    onClick = onClick,
+                                    onLongClick = onLongClick
                                 )
                             }
                         }

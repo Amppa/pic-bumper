@@ -1,7 +1,9 @@
 package com.picbumper.domain.model
 
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 
+@Immutable
 data class ImageItem(
     val uri: Uri,
     val displayName: String,

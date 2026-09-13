@@ -66,4 +66,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setSilentRename(enabled: Boolean) {
         viewModelScope.launch { repository.updateSilentRename(enabled) }
     }
+
+    fun setThumbnailSize(size: Int) {
+        viewModelScope.launch { repository.updateThumbnailSize(size) }
+    }
 }
+
