@@ -12,23 +12,30 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,8 +50,9 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit
 ) {
     val settings by viewModel.settings.collectAsState()
+    var showTimeStrategyDialog by remember { mutableStateOf(false) }
 
-    // SAF Directory picker triggered by clicking the underlined album path
+    // SAF Directory picker triggered by clicking the album path item
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { treeUri: Uri? ->
@@ -82,7 +90,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
-            // Album path setting item (Material 3 standard preference style)
+            // Setting Item 1: Album Path (Material 3 Preference Style)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -104,66 +112,170 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Override time section header
-            Text(
-                text = "覆蓋時間",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
-            )
+            // Setting Item 2: Time Strategy (Identical style matching Album Path)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { showTimeStrategyDialog = true }
+                    .padding(horizontal = 4.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "覆蓋時間設定",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
 
-            SettingCheckboxRow(
-                label = "DATE_ADDED",
-                checked = settings.overrideDateAdded,
-                onCheckedChange = { viewModel.setOverrideDateAdded(it) }
-            )
-            SettingCheckboxRow(
-                label = "DATE_MODIFIED",
-                checked = settings.overrideDateModified,
-                onCheckedChange = { viewModel.setOverrideDateModified(it) }
-            )
-            SettingCheckboxRow(
-                label = "DATE_TAKEN",
-                checked = settings.overrideDateTaken,
-                onCheckedChange = { viewModel.setOverrideDateTaken(it) }
-            )
-            SettingCheckboxRow(
-                label = "EXIF",
-                checked = settings.overrideExif,
-                onCheckedChange = { viewModel.setOverrideExif(it) }
-            )
+                val activeExtras = mutableListOf<String>()
+                if (settings.overrideDateAdded) activeExtras.add("DATE_ADDED")
+                if (settings.overrideDateTaken) activeExtras.add("DATE_TAKEN")
+                if (settings.overrideExif) activeExtras.add("EXIF")
+
+                val subtitleText = if (activeExtras.isEmpty()) {
+                    "基礎：檔案修改時間 (DATE_MODIFIED) ‧ 點擊設定進階選項"
+                } else {
+                    "基礎：DATE_MODIFIED ‧ 進階：${activeExtras.joinToString(", ")}"
+                }
+
+                Text(
+                    text = subtitleText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Dialog: Option 2 Time Strategy Dialog
+            if (showTimeStrategyDialog) {
+                AlertDialog(
+                    onDismissRequest = { showTimeStrategyDialog = false },
+                    title = {
+                        Text(
+                            text = "覆蓋時間設定",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            // Section 1: Fixed mandatory item (DATE_MODIFIED)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = true,
+                                    onCheckedChange = null,
+                                    enabled = false
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = "檔案修改時間 (DATE_MODIFIED)",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "基礎置頂依據，相容性最高且極速不產生重複檔。",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "進階相容選項（若您的相簿或軟體仍無法置頂才需勾選）：",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+
+                            // Item 2: DATE_ADDED
+                            DialogCheckboxRow(
+                                title = "檔案新增時間 (DATE_ADDED)",
+                                subtitle = "部分系統相簿使用；若開啟，舊圖片可能需複製產生新檔。",
+                                checked = settings.overrideDateAdded,
+                                onCheckedChange = { viewModel.setOverrideDateAdded(it) }
+                            )
+
+                            // Item 3: DATE_TAKEN
+                            DialogCheckboxRow(
+                                title = "相片拍攝時間 (DATE_TAKEN)",
+                                subtitle = "部分手機原生相簿（如小米、華為、OPPO 相簿）依拍攝時間排序時使用。",
+                                checked = settings.overrideDateTaken,
+                                onCheckedChange = { viewModel.setOverrideDateTaken(it) }
+                            )
+
+                            // Item 4: EXIF
+                            DialogCheckboxRow(
+                                title = "寫入相片 EXIF 資訊時間",
+                                subtitle = "將當前時間直接寫入 JPG 圖檔內部的 EXIF 拍攝資訊標籤。",
+                                checked = settings.overrideExif,
+                                onCheckedChange = { viewModel.setOverrideExif(it) }
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showTimeStrategyDialog = false }) {
+                            Text("完成", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun SettingCheckboxRow(
-    label: String,
+private fun DialogCheckboxRow(
+    title: String,
+    subtitle: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(6.dp))
             .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
         Checkbox(
             checked = checked,
             onCheckedChange = onCheckedChange
         )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp,
+                lineHeight = 14.sp
+            )
+        }
     }
 }

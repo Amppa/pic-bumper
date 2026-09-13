@@ -115,6 +115,7 @@ class MediaBumperRepository(private val context: Context) {
         val bumpedUris = mutableListOf<Uri>()
         val selfDeletedUris = mutableListOf<Uri>()
         val externalUrisToAsk = mutableListOf<Uri>()
+        val internalFailedDeleteUris = mutableListOf<Uri>()
         val baseNowMillis = System.currentTimeMillis()
 
         items.forEachIndexed { index, item ->
@@ -149,7 +150,7 @@ class MediaBumperRepository(private val context: Context) {
                         if (deleted) {
                             selfDeletedUris.add(item.uri)
                         } else {
-                            externalUrisToAsk.add(item.uri)
+                            internalFailedDeleteUris.add(item.uri)
                         }
                     }
                 }
@@ -172,7 +173,8 @@ class MediaBumperRepository(private val context: Context) {
         BumpResult(
             bumpedUris = bumpedUris,
             selfDeletedUris = selfDeletedUris,
-            externalUrisToAsk = externalUrisToAsk
+            externalUrisToAsk = externalUrisToAsk,
+            internalFailedDeleteUris = internalFailedDeleteUris
         )
     }
 
@@ -445,6 +447,27 @@ class MediaBumperRepository(private val context: Context) {
         }
     }
 
+    /**
+     * Builds a system write/edit confirmation intent for Android 11+ (API 30+).
+     */
+    fun buildWriteIntentSender(uris: List<Uri>): PendingIntent? {
+        if (uris.isEmpty()) return null
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val mediaStoreUris = uris.mapNotNull { toMediaStoreUri(it) }.distinct()
+                if (mediaStoreUris.isNotEmpty()) {
+                    MediaStore.createWriteRequest(contentResolver, mediaStoreUris)
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private fun isExifEligible(mimeType: String, displayName: String): Boolean {
         return mimeType == "image/jpeg" ||
                 displayName.endsWith(".jpg", ignoreCase = true) ||
@@ -455,5 +478,6 @@ class MediaBumperRepository(private val context: Context) {
 data class BumpResult(
     val bumpedUris: List<Uri>,
     val selfDeletedUris: List<Uri>,
-    val externalUrisToAsk: List<Uri>
+    val externalUrisToAsk: List<Uri>,
+    val internalFailedDeleteUris: List<Uri> = emptyList()
 )

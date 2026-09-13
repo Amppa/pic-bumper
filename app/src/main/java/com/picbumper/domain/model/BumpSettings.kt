@@ -1,9 +1,9 @@
 package com.picbumper.domain.model
 
 data class BumpSettings(
-    val overrideDateAdded: Boolean = true,
+    val overrideDateAdded: Boolean = false,
     val overrideDateModified: Boolean = true,
-    val overrideDateTaken: Boolean = true,
-    val overrideExif: Boolean = true,
+    val overrideDateTaken: Boolean = false,
+    val overrideExif: Boolean = false,
     val albumName: String = "PicBumper"
 )

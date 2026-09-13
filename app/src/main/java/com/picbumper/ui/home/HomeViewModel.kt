@@ -28,6 +28,8 @@ data class HomeUiState(
     val statusMessage: String? = null,
     val externalUrisToAskDelete: List<Uri>? = null,
     val systemDeletePendingUris: List<Uri>? = null,
+    val systemWritePendingUris: List<Uri>? = null,
+    val pendingRenameAction: Pair<Uri, String>? = null,
     val lastRefreshedAt: Long = System.currentTimeMillis()
 ) {
     val recentItems: List<ImageItem>
@@ -139,7 +141,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             // Refresh album view immediately so the newly bumped image is at the top
             loadAlbumImages(currentSettings.albumName)
 
-            // Always ask for confirmation when external images are bumped
+            // Handle fallback delete failures for Directory A items via system delete request
+            val internalPendingUris = result.internalFailedDeleteUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
+
+            // Ask for confirmation only when external images are bumped
             if (result.externalUrisToAsk.isNotEmpty()) {
                 _uiState.update {
                     it.copy(
@@ -147,10 +152,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         isMultiSelectMode = false,
                         checkedItemUris = emptySet(),
                         statusMessage = "已將 ${result.bumpedUris.size} 張照片置頂",
-                        externalUrisToAskDelete = result.externalUrisToAsk
+                        externalUrisToAskDelete = result.externalUrisToAsk,
+                        systemDeletePendingUris = internalPendingUris.ifEmpty { null }
                     )
                 }
             } else {
+                if (internalPendingUris.isNotEmpty()) {
+                    _uiState.update {
+                        it.copy(systemDeletePendingUris = internalPendingUris)
+                    }
+                }
                 finishBumpCycle(result.bumpedUris.size)
             }
         }
@@ -269,9 +280,48 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 loadAlbumImages()
             } else {
+                val mediaStoreUri = bumperRepository.toMediaStoreUri(targetUri) ?: targetUri
                 _uiState.update {
-                    it.copy(statusMessage = "重命名失敗，請確認檔案存取權限")
+                    it.copy(
+                        systemWritePendingUris = listOf(mediaStoreUri),
+                        pendingRenameAction = Pair(targetUri, finalName)
+                    )
                 }
+            }
+        }
+    }
+
+    fun onSystemWriteFinished(success: Boolean) {
+        val pendingAction = _uiState.value.pendingRenameAction
+        _uiState.update {
+            it.copy(
+                systemWritePendingUris = null,
+                pendingRenameAction = null
+            )
+        }
+
+        if (success && pendingAction != null) {
+            viewModelScope.launch {
+                val (targetUri, finalName) = pendingAction
+                val renamed = bumperRepository.renameImage(targetUri, finalName)
+                if (renamed) {
+                    _uiState.update {
+                        it.copy(
+                            checkedItemUris = emptySet(),
+                            isMultiSelectMode = false,
+                            statusMessage = "已將檔案重命名為 $finalName"
+                        )
+                    }
+                    loadAlbumImages()
+                } else {
+                    _uiState.update {
+                        it.copy(statusMessage = "重命名失敗，請確認檔案存取權限")
+                    }
+                }
+            }
+        } else if (!success) {
+            _uiState.update {
+                it.copy(statusMessage = "重命名已取消或失敗")
             }
         }
     }

@@ -75,6 +75,14 @@ fun PicBumperAppContent(
         homeViewModel.onSystemDeleteFinished(success = success)
     }
 
+    // System write launcher for Android 11+ (API 30+) rename/modify permissions
+    val writeLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        val success = result.resultCode == Activity.RESULT_OK
+        homeViewModel.onSystemWriteFinished(success = success)
+    }
+
     LaunchedEffect(homeUiState.systemDeletePendingUris) {
         val pendingUris = homeUiState.systemDeletePendingUris
         if (!pendingUris.isNullOrEmpty()) {
@@ -88,6 +96,23 @@ fun PicBumperAppContent(
                 }
             } catch (_: Exception) {
                 homeViewModel.onSystemDeleteFinished(success = false)
+            }
+        }
+    }
+
+    LaunchedEffect(homeUiState.systemWritePendingUris) {
+        val pendingUris = homeUiState.systemWritePendingUris
+        if (!pendingUris.isNullOrEmpty()) {
+            try {
+                val pendingIntent = bumperRepository.buildWriteIntentSender(pendingUris)
+                if (pendingIntent != null) {
+                    val request = IntentSenderRequest.Builder(pendingIntent.intentSender).build()
+                    writeLauncher.launch(request)
+                } else {
+                    homeViewModel.onSystemWriteFinished(success = false)
+                }
+            } catch (_: Exception) {
+                homeViewModel.onSystemWriteFinished(success = false)
             }
         }
     }

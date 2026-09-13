@@ -24,10 +24,10 @@ class SettingsRepository(private val context: Context) {
     }
 
     val settingsFlow: Flow<BumpSettings> = context.dataStore.data.map { preferences ->
-        val overrideDateAdded = preferences[PreferencesKeys.OVERRIDE_DATE_ADDED] ?: true
+        val overrideDateAdded = preferences[PreferencesKeys.OVERRIDE_DATE_ADDED] ?: false
         val overrideDateModified = preferences[PreferencesKeys.OVERRIDE_DATE_MODIFIED] ?: true
-        val overrideDateTaken = preferences[PreferencesKeys.OVERRIDE_DATE_TAKEN] ?: true
-        val overrideExif = preferences[PreferencesKeys.OVERRIDE_EXIF] ?: true
+        val overrideDateTaken = preferences[PreferencesKeys.OVERRIDE_DATE_TAKEN] ?: false
+        val overrideExif = preferences[PreferencesKeys.OVERRIDE_EXIF] ?: false
         val albumName = preferences[PreferencesKeys.ALBUM_NAME] ?: "PicBumper"
 
         BumpSettings(
