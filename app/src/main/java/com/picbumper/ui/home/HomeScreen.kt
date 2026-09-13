@@ -45,7 +45,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.picbumper.ui.home.components.DeleteConfirmDialog
 import com.picbumper.ui.home.components.EmptyAlbumView
@@ -57,7 +56,6 @@ import com.picbumper.ui.home.components.ImagePreviewDialog
 import com.picbumper.ui.home.components.RenameDialog
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
