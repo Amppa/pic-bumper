@@ -6,6 +6,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -267,30 +269,6 @@ fun HomeScreen(
                 .padding(innerPadding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Inline status feedback banner (No toast)
-                AnimatedVisibility(
-                    visible = uiState.statusMessage != null,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    uiState.statusMessage?.let { msg ->
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = msg,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                            )
-                        }
-                    }
-                }
-
                 if (uiState.albumItems.isEmpty()) {
                     // Empty state: Pictures/PicBumper is currently empty or awaiting permission
                     EmptyAlbumView(
@@ -392,6 +370,33 @@ fun HomeScreen(
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            // Floating Capsule Status Pill Overlay (Bottom Center, avoiding FAB)
+            AnimatedVisibility(
+                visible = uiState.statusMessage != null,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 88.dp, start = 24.dp, end = 24.dp)
+            ) {
+                uiState.statusMessage?.let { msg ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = RoundedCornerShape(24.dp),
+                        shadowElevation = 6.dp,
+                        tonalElevation = 4.dp
+                    ) {
+                        Text(
+                            text = msg,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
+                        )
                     }
                 }
             }
