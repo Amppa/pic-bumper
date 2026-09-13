@@ -185,7 +185,8 @@ class MediaBumperRepository(private val context: Context) {
         timestampMillis: Long,
         settings: BumpSettings
     ): Boolean {
-        val mimeType = contentResolver.getType(uri) ?: inferMimeType(displayName)
+        val targetUri = toMediaStoreUri(uri) ?: uri
+        val mimeType = contentResolver.getType(targetUri) ?: inferMimeType(displayName)
         val values = ContentValues().apply {
             if (settings.overrideDateAdded) {
                 put(MediaStore.Images.Media.DATE_ADDED, timestampSec)
@@ -199,9 +200,9 @@ class MediaBumperRepository(private val context: Context) {
         }
 
         return try {
-            val rows = contentResolver.update(uri, values, null, null)
+            val rows = contentResolver.update(targetUri, values, null, null)
             if (settings.overrideExif && isExifEligible(mimeType, displayName)) {
-                tryUpdateExif(uri, timestampMillis)
+                tryUpdateExif(targetUri, timestampMillis)
             }
             rows > 0
         } catch (_: Exception) {
@@ -272,8 +273,9 @@ class MediaBumperRepository(private val context: Context) {
     }
 
     private fun tryUpdateExif(uri: Uri, timestampMillis: Long) {
+        val targetUri = toMediaStoreUri(uri) ?: uri
         try {
-            contentResolver.openFileDescriptor(uri, "rw")?.use { pfd ->
+            contentResolver.openFileDescriptor(targetUri, "rw")?.use { pfd ->
                 val exif = ExifInterface(pfd.fileDescriptor)
                 val dateFormat = SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US)
                 val dateString = dateFormat.format(Date(timestampMillis))
@@ -288,8 +290,9 @@ class MediaBumperRepository(private val context: Context) {
     }
 
     private fun deleteSelfOwnedUri(uri: Uri): Boolean {
+        val targetUri = toMediaStoreUri(uri) ?: uri
         return try {
-            contentResolver.delete(uri, null, null) > 0
+            contentResolver.delete(targetUri, null, null) > 0
         } catch (_: Exception) {
             false
         }
@@ -350,9 +353,52 @@ class MediaBumperRepository(private val context: Context) {
                         return ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
                     }
                 }
+            } else if (authority == "com.android.externalstorage.documents") {
+                val docId = DocumentsContract.getDocumentId(uri)
+                val path = docId.substringAfter(':', "")
+                if (path.isNotEmpty()) {
+                    val mediaUri = queryMediaStoreUriByPath(path)
+                    if (mediaUri != null) return mediaUri
+                }
+            } else if (authority == "com.android.providers.downloads.documents") {
+                val docId = DocumentsContract.getDocumentId(uri)
+                if (docId.startsWith("raw:")) {
+                    val rawPath = docId.substringAfter("raw:")
+                    val mediaUri = queryMediaStoreUriByPath(rawPath)
+                    if (mediaUri != null) return mediaUri
+                } else {
+                    val id = docId.toLongOrNull()
+                    if (id != null) {
+                        return ContentUris.withAppendedId(
+                            Uri.parse("content://downloads/public_downloads"),
+                            id
+                        )
+                    }
+                }
             }
         }
 
+        return null
+    }
+
+    private fun queryMediaStoreUriByPath(path: String): Uri? {
+        try {
+            val projection = arrayOf(MediaStore.Images.Media._ID)
+            val selection = "${MediaStore.Images.Media.DATA} LIKE ?"
+            val selectionArgs = arrayOf("%/$path")
+            contentResolver.query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                selectionArgs,
+                null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val id = cursor.getLong(0)
+                    return ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+                }
+            }
+        } catch (_: Exception) {}
         return null
     }
 
@@ -380,6 +426,8 @@ class MediaBumperRepository(private val context: Context) {
 
     fun isUriInDirectoryA(uri: Uri, albumName: String): Boolean {
         val targetPathSegment = "Pictures/$albumName"
+        val mediaUri = toMediaStoreUri(uri) ?: uri
+
         try {
             val projection = arrayOf(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -388,27 +436,35 @@ class MediaBumperRepository(private val context: Context) {
                     MediaStore.Images.Media.DATA
                 }
             )
-            contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+            contentResolver.query(mediaUri, projection, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
-                    val path = cursor.getString(0)
-                    if (path != null && path.contains(targetPathSegment, ignoreCase = true)) {
-                        return true
+                    val pathIdx = cursor.getColumnIndex(projection[0])
+                    if (pathIdx != -1) {
+                        val path = cursor.getString(pathIdx)
+                        if (path != null && path.contains(targetPathSegment, ignoreCase = true)) {
+                            return true
+                        }
                     }
                 }
             }
         } catch (_: Exception) {}
-        return false
+
+        // Fallback string matching for decoded SAF tree URIs
+        val uriStr = Uri.decode(uri.toString())
+        return uriStr.contains("Pictures/$albumName", ignoreCase = true) ||
+                uriStr.contains("Pictures%2F$albumName", ignoreCase = true)
     }
 
     /**
      * Renames an existing image in MediaStore by updating its DISPLAY_NAME.
      */
     suspend fun renameImage(uri: Uri, newName: String): Boolean = withContext(Dispatchers.IO) {
+        val targetUri = toMediaStoreUri(uri) ?: uri
         try {
             val values = ContentValues().apply {
                 put(MediaStore.Images.Media.DISPLAY_NAME, newName)
             }
-            contentResolver.update(uri, values, null, null) > 0
+            contentResolver.update(targetUri, values, null, null) > 0
         } catch (_: Exception) {
             false
         }
@@ -418,11 +474,15 @@ class MediaBumperRepository(private val context: Context) {
         try {
             contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
-                    return cursor.getString(0)
+                    val name = cursor.getString(0)
+                    if (!name.isNullOrBlank()) {
+                        return name.substringAfterLast(':').substringAfterLast('/')
+                    }
                 }
             }
         } catch (_: Exception) {}
-        return uri.lastPathSegment
+        val lastSegment = uri.lastPathSegment
+        return lastSegment?.substringAfterLast(':')?.substringAfterLast('/')
     }
 
     private fun queryFileSize(uri: Uri): Long {
