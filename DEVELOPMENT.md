@@ -77,12 +77,19 @@ To avoid out-of-memory errors (OOM) and quality loss, and to retain full GIF/Web
   - Files originating from other directories (e.g., `Downloads`, `DCIM`) or from previous installations where ownership was severed require user consent.
   - Deletions are batched through `MediaStore.createDeleteRequest` (Android 11+ / API 30+) to prompt only once for all external or previous items.
 
-### E. Memory Optimization (Coil Downsampling)
-Thumbnails in `HomeScreen.kt` strictly configure downsampling parameters:
-- `size(240)`
-- `scale(Scale.FIT)`
-- `precision(Precision.INEXACT)`
-This limits JVM heap allocation to under ~20MB, preventing stutter even when displaying high-resolution screenshots.
+### E. Memory & GPU Pipeline Optimization (Coil 2.x & Downsampling)
+Thumbnails in `PicBumperApplication.kt` and `ImageGridCard.kt` strictly configure hardware acceleration:
+- **Global ImageLoader**: Configures 20% RAM memory cache, 250MB disk cache, and `.allowHardware(true)` for zero-copy GPU rendering pipeline.
+- **3-Tier Configurable Downsampling**: 100px (ultra-fast), 150px (balanced - default), and 240px (high-res).
+- **Cache Key Invalidation**: `memoryCacheKey("${uri}_${thumbnailSize}")` ensures exact cache resolution matching when switching quality settings.
+- **Zero-RAM Dimension Fallback**: `BitmapFactory.Options(inJustDecodeBounds = true)` parses width/height without allocating bitmap memory.
+
+### F. Duplicate Import Collision Resolution
+When importing external files with matching filenames in `Pictures/PicBumper`:
+- `DuplicateImportDialog` presents side-by-side thumbnail comparison with file size and modified timestamps.
+- **Keep Both**: Auto-names new file to `name (1).ext`.
+- **Replace**: Deletes old file and overwrites with incoming file.
+- **Skip**: Cancels import for duplicate file.
 
 ---
 
@@ -95,24 +102,34 @@ pic-bumper/
 │   │   ├── AndroidManifest.xml
 │   │   └── java/com/picbumper/
 │   │       ├── MainActivity.kt               # Entry point, navigation, and IntentSender handling
-│   │       ├── PicBumperApplication.kt        # Application class
+│   │       ├── PicBumperApplication.kt        # Application class & Coil ImageLoaderFactory
 │   │       ├── data/
 │   │       │   ├── MediaBumperRepository.kt   # MediaStore insertion, stream copy, EXIF, deletion
 │   │       │   └── SettingsRepository.kt      # DataStore Preferences persistence
 │   │       ├── domain/model/
-│   │       │   ├── BumpSettings.kt            # Settings data model and enums
-│   │       │   └── ImageItem.kt               # Resolved media item model
-│   │       └── ui/
-│   │           ├── home/
-│   │           │   ├── HomeScreen.kt          # SAF file manager picker, grid, multi-select bar
-│   │           │   └── HomeViewModel.kt       # UiState and bump orchestration
-│   │           ├── settings/
-│   │           │   ├── SettingsScreen.kt      # Material 3 preference screen
-│   │           │   └── SettingsViewModel.kt   # Preference mutation bindings
-│   │           └── theme/
-│   │               ├── Color.kt               # AMOLED pure black palette
-│   │               ├── Theme.kt               # System bar & theme styling
-│   │               └── Type.kt                # Typography tokens
+│   │       │   ├── BumpSettings.kt            # Settings data model and thumbnail size preference
+│   │       │   └── ImageItem.kt               # @Immutable media item model with metadata
+│   │       ├── ui/
+│   │       │   ├── home/
+│   │       │   │   ├── HomeScreen.kt          # Main gallery grid and dialog orchestration
+│   │       │   │   ├── HomeViewModel.kt       # UiState and collision/bump orchestration
+│   │       │   │   └── components/
+│   │       │   │       ├── DuplicateImportDialog.kt # Side-by-side import collision dialog
+│   │       │   │       ├── EmptyAlbumView.kt   # Empty state view
+│   │       │   │       ├── FloatingStatusCapsule.kt # Floating status pill overlay
+│   │       │   │       ├── HomeDialogs.kt      # Rename and delete confirm dialogs
+│   │       │   │       ├── HomeTopBar.kt       # Multi-select & main action top bar
+│   │       │   │       ├── ImageGridCard.kt    # LazyGrid card with hardware bitmaps
+│   │       │   │       └── ImagePreviewDialog.kt # Full-screen preview with top-left Info card
+│   │       │   ├── settings/
+│   │       │   │   ├── SettingsScreen.kt      # Material 3 preference screen & 3-tier thumbnail dialog
+│   │       │   │   └── SettingsViewModel.kt   # Preference mutation bindings
+│   │       │   └── theme/
+│   │       │       ├── Color.kt               # AMOLED pure black palette
+│   │       │       ├── Theme.kt               # System bar & theme styling
+│   │       │       └── Type.kt                # Typography tokens
+│   │       └── util/
+│   │           └── FormatUtils.kt             # Shared file size and date formatting utilities
 │   └── build.gradle.kts                       # App module configuration
 ├── .github/workflows/
 │   └── build-apk.yml                          # GitHub Actions cloud APK compiler
