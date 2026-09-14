@@ -199,7 +199,7 @@ private class MemeGridAdapter(
 
     private fun createPhotoTileView(ctx: Context): SquareFrameLayout {
         val container = SquareFrameLayout(ctx).apply {
-            val margin = dpToPx(ctx, 1)
+            val margin = dpToPx(ctx, 2)
             val params = ViewGroup.MarginLayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
