@@ -58,7 +58,6 @@ fun SettingsScreen(
     val settings by viewModel.settings.collectAsState()
     var showTimeStrategyDialog by remember { mutableStateOf(false) }
     var showRenameStrategyDialog by remember { mutableStateOf(false) }
-    var showThumbnailSizeDialog by remember { mutableStateOf(false) }
 
     // SAF Directory picker triggered by clicking the album path item
     val folderPickerLauncher = rememberLauncherForActivityResult(
@@ -180,122 +179,6 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Setting Item 4: Thumbnail Quality & Resolution
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { showThumbnailSizeDialog = true }
-                    .padding(horizontal = 4.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = "縮圖品質與解析度",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                val sizeText = when (settings.thumbnailSize) {
-                    100 -> "超極速模式 (100px) - 省電高流暢"
-                    240 -> "高清精細模式 (240px) - 超清晰視覺"
-                    else -> "標準流暢模式 (150px - 預設推薦)"
-                }
-                Text(
-                    text = sizeText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Dialog 1: Option 2 Time Strategy Dialog
-            if (showTimeStrategyDialog) {
-                AlertDialog(
-                    onDismissRequest = { showTimeStrategyDialog = false },
-                    title = {
-                        Text(
-                            text = "時間屬性設定",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    },
-                    text = {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(
-                                    checked = true,
-                                    onCheckedChange = null,
-                                    enabled = false
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Text(
-                                        text = "檔案修改時間 (DATE_MODIFIED)",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "基礎置頂屬性；社群 App 與檔案總管 (SAF) 主要依據此排序。",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 11.sp
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = "進階（置頂無效果才需勾選）：",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(bottom = 6.dp)
-                            )
-
-                            DialogCheckboxRow(
-                                title = "檔案新增時間 (DATE_ADDED)",
-                                subtitle = "相容於2019之前的 App 或「最近下載」頁面；開啟後會複製產生新檔。",
-                                checked = settings.overrideDateAdded,
-                                onCheckedChange = { viewModel.setOverrideDateAdded(it) }
-                            )
-
-                            DialogCheckboxRow(
-                                title = "相片拍攝時間 (DATE_TAKEN)",
-                                subtitle = "大多數手機內建原生相簿與 Google 相片主要排序依據。",
-                                checked = settings.overrideDateTaken,
-                                onCheckedChange = { viewModel.setOverrideDateTaken(it) }
-                            )
-
-                            DialogCheckboxRow(
-                                title = "EXIF 拍攝時間",
-                                subtitle = "覆寫 JPG 圖檔內部的 EXIF 拍攝資訊標籤。",
-                                checked = settings.overrideExif,
-                                onCheckedChange = { viewModel.setOverrideExif(it) }
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { showTimeStrategyDialog = false }) {
-                            Text("完成", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                )
-            }
-
             // Dialog 2: Rename Strategy Dialog
             if (showRenameStrategyDialog) {
                 AlertDialog(
@@ -339,61 +222,9 @@ fun SettingsScreen(
                     }
                 )
             }
-
-            // Dialog 3: Thumbnail Size Dialog
-            if (showThumbnailSizeDialog) {
-                AlertDialog(
-                    onDismissRequest = { showThumbnailSizeDialog = false },
-                    title = {
-                        Text(
-                            text = "縮圖品質與解析度",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    },
-                    text = {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            DialogRadioRow(
-                                title = "超極速模式 (100px)",
-                                subtitle = "極微縮圖，單張僅 ~40KB 記憶體，速度提升 500%，適合 100+ 海量梗圖。",
-                                selected = settings.thumbnailSize == 100,
-                                onClick = { viewModel.setThumbnailSize(100) }
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            DialogRadioRow(
-                                title = "標準流暢模式 (150px - 預設推薦)",
-                                subtitle = "平衡速度與解析度，記憶體節省 60%，滾動極度順暢。",
-                                selected = settings.thumbnailSize == 150,
-                                onClick = { viewModel.setThumbnailSize(150) }
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            DialogRadioRow(
-                                title = "高清精細模式 (240px)",
-                                subtitle = "縮圖細節清晰細緻，適合旗艦手機或圖片數量較少時使用。",
-                                selected = settings.thumbnailSize == 240,
-                                onClick = { viewModel.setThumbnailSize(240) }
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { showThumbnailSizeDialog = false }) {
-                            Text("完成", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                )
-            }
+        }
+    }
+}
         }
     }
 }

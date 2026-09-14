@@ -33,7 +33,7 @@ class SettingsRepository(private val context: Context) {
         val overrideExif = preferences[PreferencesKeys.OVERRIDE_EXIF] ?: false
         val albumName = preferences[PreferencesKeys.ALBUM_NAME] ?: "PicBumper"
         val silentRename = preferences[PreferencesKeys.SILENT_RENAME] ?: true
-        val thumbnailSize = preferences[PreferencesKeys.THUMBNAIL_SIZE] ?: 150
+        val thumbnailSize = preferences[PreferencesKeys.THUMBNAIL_SIZE] ?: 360
 
         BumpSettings(
             overrideDateAdded = overrideDateAdded,
@@ -80,12 +80,6 @@ class SettingsRepository(private val context: Context) {
     suspend fun updateSilentRename(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SILENT_RENAME] = enabled
-        }
-    }
-
-    suspend fun updateThumbnailSize(size: Int) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.THUMBNAIL_SIZE] = size
         }
     }
 }

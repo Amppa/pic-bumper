@@ -7,6 +7,6 @@ data class BumpSettings(
     val overrideExif: Boolean = false,
     val albumName: String = "PicBumper",
     val silentRename: Boolean = true,
-    val thumbnailSize: Int = 150
+    val thumbnailSize: Int = 360
 )
 
