@@ -2,6 +2,7 @@ package com.picbumper.ui.home.components
 
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -11,9 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -22,14 +23,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import coil.size.Precision
 import coil.size.Scale
 import com.picbumper.domain.model.ImageItem
-import com.picbumper.ui.theme.DarkSurfaceVariant
+
+private val TilePlaceholderBg = Color(0xFF242424)
+private val TilePlaceholderIconColor = Color(0xFF383838)
+private val UncheckedBadgeBg = Color(0xFF202020)
+private val UncheckedBadgeBorder = Color(0xFF666666)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -42,12 +48,11 @@ fun ImageGridCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    // Coil Downsampling with cache key isolation based on resolution
-    val imageRequest = remember(item.uri, thumbnailSize) {
+    val imageRequest = remember(item.uriString, thumbnailSize) {
         ImageRequest.Builder(context)
             .data(item.uri)
-            .memoryCacheKey("${item.uri}_$thumbnailSize")
-            .diskCacheKey("${item.uri}_$thumbnailSize")
+            .memoryCacheKey("${item.uriString}_$thumbnailSize")
+            .diskCacheKey("${item.uriString}_$thumbnailSize")
             .size(thumbnailSize)
             .scale(Scale.FILL)
             .precision(Precision.INEXACT)
@@ -55,47 +60,54 @@ fun ImageGridCard(
             .build()
     }
 
+    val painter = rememberAsyncImagePainter(model = imageRequest)
+
     Box(
         modifier = Modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(10.dp))
-            .background(DarkSurfaceVariant)
-            .border(
-                width = if (isChecked) 2.5.dp else 0.5.dp,
-                color = if (isChecked) MaterialTheme.colorScheme.primary else Color.DarkGray,
-                shape = RoundedCornerShape(10.dp)
+            .background(TilePlaceholderBg, RectangleShape)
+            .then(
+                if (isChecked) {
+                    Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RectangleShape)
+                } else {
+                    Modifier
+                }
             )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
-            )
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        AsyncImage(
-            model = imageRequest,
+        // Static neutral photo icon shown while image is loading in 5~15ms
+        Icon(
+            imageVector = Icons.Default.Image,
+            contentDescription = null,
+            tint = TilePlaceholderIconColor,
+            modifier = Modifier.size(32.dp)
+        )
+
+        Image(
+            painter = painter,
             contentDescription = item.displayName,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
 
-        // Dim overlay when checked
-        if (isChecked) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.25f))
-            )
-        }
-
-        // Selection Checkbox (Only shown in multi-select mode or when checked)
+        // Selection Checkbox Badge (No full-card alpha dimming layer for 0 overdraw)
         if (isMultiSelectMode || isChecked) {
             Box(
                 modifier = Modifier
+                    .align(Alignment.TopEnd)
                     .padding(6.dp)
                     .size(22.dp)
                     .clip(CircleShape)
-                    .background(if (isChecked) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.45f))
-                    .border(1.5.dp, if (isChecked) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.8f), CircleShape)
-                    .align(Alignment.TopEnd),
+                    .background(if (isChecked) MaterialTheme.colorScheme.primary else UncheckedBadgeBg)
+                    .border(
+                        1.5.dp,
+                        if (isChecked) MaterialTheme.colorScheme.primary else UncheckedBadgeBorder,
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 if (isChecked) {

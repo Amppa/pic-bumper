@@ -163,122 +163,78 @@ fun HomeScreen(
                         }
                     )
                 } else {
-                    val recentItems = uiState.recentItems
-                    val olderItems = uiState.olderItems
-
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = 105.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(start = 2.dp, end = 2.dp, top = 2.dp, bottom = 96.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        // Section 1: Recent Items (< 30 min)
-                        if (recentItems.isNotEmpty()) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 4.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "近 30 分鐘常用 (${recentItems.size} 張)",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                        items(
+                            items = uiState.gridEntries,
+                            key = { it.id },
+                            span = { entry ->
+                                when (entry) {
+                                    is GridEntry.Header -> GridItemSpan(maxLineSpan)
+                                    is GridEntry.Photo -> GridItemSpan(1)
                                 }
                             }
-
-                            items(recentItems, key = { it.uri }) { item ->
-                                val isChecked = uiState.checkedItemUris.contains(item.uri)
-                                val onClick = remember(item.uri, uiState.isMultiSelectMode) {
-                                    {
-                                        if (uiState.isMultiSelectMode) {
-                                            viewModel.toggleItemCheck(item.uri)
-                                        } else {
-                                            previewItem = item
-                                        }
-                                    }
-                                }
-                                val onLongClick = remember(item.uri) {
-                                    { viewModel.toggleItemCheck(item.uri) }
-                                }
-
-                                ImageGridCard(
-                                    item = item,
-                                    isChecked = isChecked,
-                                    isMultiSelectMode = uiState.isMultiSelectMode,
-                                    thumbnailSize = settings.thumbnailSize,
-                                    context = context,
-                                    onClick = onClick,
-                                    onLongClick = onLongClick
-                                )
-                            }
-                        }
-
-                        // Section 2: Horizontal Divider & Older Items (>= 30 min)
-                        if (olderItems.isNotEmpty()) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = if (recentItems.isEmpty()) 8.dp else 16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
+                        ) { entry ->
+                            when (entry) {
+                                is GridEntry.Header -> {
+                                    Row(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .height(1.dp)
-                                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                    )
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.padding(horizontal = 12.dp)
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(1.dp)
+                                                .background(Color(0xFF2D2D2D))
+                                        )
                                         Text(
-                                            text = if (recentItems.isEmpty()) "較舊照片 (${olderItems.size} 張)" else "30 分鐘內照片 (${olderItems.size} 張)",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Medium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                            text = "${entry.title} (${entry.count} 張)",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(horizontal = 12.dp)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(1.dp)
+                                                .background(Color(0xFF2D2D2D))
                                         )
                                     }
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(1.dp)
-                                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                    )
                                 }
-                            }
-
-                            items(olderItems, key = { it.uri }) { item ->
-                                val isChecked = uiState.checkedItemUris.contains(item.uri)
-                                val onClick = remember(item.uri, uiState.isMultiSelectMode) {
-                                    {
-                                        if (uiState.isMultiSelectMode) {
-                                            viewModel.toggleItemCheck(item.uri)
-                                        } else {
-                                            previewItem = item
+                                is GridEntry.Photo -> {
+                                    val item = entry.item
+                                    val isChecked = uiState.checkedItemUris.contains(item.uri)
+                                    val onClick = remember(item.uriString, uiState.isMultiSelectMode) {
+                                        {
+                                            if (uiState.isMultiSelectMode) {
+                                                viewModel.toggleItemCheck(item.uri)
+                                            } else {
+                                                previewItem = item
+                                            }
                                         }
                                     }
-                                }
-                                val onLongClick = remember(item.uri) {
-                                    { viewModel.toggleItemCheck(item.uri) }
-                                }
+                                    val onLongClick = remember(item.uriString) {
+                                        { viewModel.toggleItemCheck(item.uri) }
+                                    }
 
-                                ImageGridCard(
-                                    item = item,
-                                    isChecked = isChecked,
-                                    isMultiSelectMode = uiState.isMultiSelectMode,
-                                    thumbnailSize = settings.thumbnailSize,
-                                    context = context,
-                                    onClick = onClick,
-                                    onLongClick = onLongClick
-                                )
+                                    ImageGridCard(
+                                        item = item,
+                                        isChecked = isChecked,
+                                        isMultiSelectMode = uiState.isMultiSelectMode,
+                                        thumbnailSize = settings.thumbnailSize,
+                                        context = context,
+                                        onClick = onClick,
+                                        onLongClick = onLongClick
+                                    )
+                                }
                             }
                         }
                     }

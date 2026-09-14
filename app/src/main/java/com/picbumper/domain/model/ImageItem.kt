@@ -12,6 +12,7 @@ data class ImageItem(
     val dateModified: Long = 0L,
     val width: Int = 0,
     val height: Int = 0,
-    val dateTaken: Long = 0L
+    val dateTaken: Long = 0L,
+    val uriString: String = uri.toString()
 )
 

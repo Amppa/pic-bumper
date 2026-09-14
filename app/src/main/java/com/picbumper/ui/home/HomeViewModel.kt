@@ -32,6 +32,7 @@ data class DuplicateCollisionInfo(
 
 data class HomeUiState(
     val albumItems: List<ImageItem> = emptyList(),
+    val gridEntries: List<GridEntry> = emptyList(),
     val checkedItemUris: Set<Uri> = emptySet(),
     val isMultiSelectMode: Boolean = false,
     val isProcessing: Boolean = false,
@@ -42,19 +43,7 @@ data class HomeUiState(
     val pendingRenameAction: Pair<Uri, String>? = null,
     val pendingCollision: DuplicateCollisionInfo? = null,
     val lastRefreshedAt: Long = System.currentTimeMillis()
-) {
-    val recentItems: List<ImageItem>
-        get() {
-            val threshold = (lastRefreshedAt / 1000) - RECENT_THRESHOLD_SECONDS
-            return albumItems.filter { it.dateModified >= threshold }
-        }
-
-    val olderItems: List<ImageItem>
-        get() {
-            val threshold = (lastRefreshedAt / 1000) - RECENT_THRESHOLD_SECONDS
-            return albumItems.filter { it.dateModified < threshold }
-        }
-}
+)
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -81,16 +70,42 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun loadAlbumImages(albumName: String = settings.value.albumName, showFeedback: Boolean = false) {
         viewModelScope.launch {
             val items = bumperRepository.loadAlbumImages(albumName)
+            val refreshedAt = System.currentTimeMillis()
+            val entries = buildGridEntries(items, refreshedAt)
             _uiState.update {
                 it.copy(
                     albumItems = items,
+                    gridEntries = entries,
                     checkedItemUris = emptySet(),
                     isMultiSelectMode = false,
-                    lastRefreshedAt = System.currentTimeMillis(),
+                    lastRefreshedAt = refreshedAt,
                     statusMessage = if (showFeedback) "已重新整理相簿時序" else it.statusMessage
                 )
             }
         }
+    }
+
+    private fun buildGridEntries(items: List<ImageItem>, lastRefreshedAt: Long): List<GridEntry> {
+        if (items.isEmpty()) return emptyList()
+        val threshold = (lastRefreshedAt / 1000) - RECENT_THRESHOLD_SECONDS
+        val recent = items.filter { it.dateModified >= threshold }
+        val older = items.filter { it.dateModified < threshold }
+
+        val entries = mutableListOf<GridEntry>()
+        if (recent.isNotEmpty()) {
+            entries.add(GridEntry.Header(title = "近 30 分鐘常用", count = recent.size, id = "header_recent"))
+            recent.forEach { item ->
+                entries.add(GridEntry.Photo(item = item))
+            }
+        }
+        if (older.isNotEmpty()) {
+            val title = if (recent.isEmpty()) "較舊照片" else "30 分鐘前照片"
+            entries.add(GridEntry.Header(title = title, count = older.size, id = "header_older"))
+            older.forEach { item ->
+                entries.add(GridEntry.Photo(item = item))
+            }
+        }
+        return entries
     }
 
     /**
