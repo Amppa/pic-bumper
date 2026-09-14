@@ -36,9 +36,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.picbumper.domain.model.ImageItem
 import com.picbumper.ui.theme.DarkSurfaceVariant
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.picbumper.util.FormatUtils
 
 @Composable
 fun DuplicateImportDialog(
@@ -51,9 +49,8 @@ fun DuplicateImportDialog(
     onReplace: () -> Unit,
     onSkip: () -> Unit
 ) {
-    val dateFormat = remember { SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault()) }
-    val existingDateStr = if (existingItem.dateModified > 0) dateFormat.format(Date(existingItem.dateModified * 1000L)) else "未知"
-    val newDateStr = if (newDateModified > 0) dateFormat.format(Date(newDateModified * 1000L)) else "未知"
+    val existingDateStr = remember(existingItem.dateModified) { FormatUtils.formatDateTime(existingItem.dateModified, fallback = "未知") }
+    val newDateStr = remember(newDateModified) { FormatUtils.formatDateTime(newDateModified, fallback = "未知") }
 
     AlertDialog(
         onDismissRequest = onSkip,
@@ -196,7 +193,7 @@ private fun ComparisonCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "容量: ${formatFileSize(size)}",
+                text = "容量: ${FormatUtils.formatFileSize(size)}",
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -212,15 +209,3 @@ private fun ComparisonCard(
     }
 }
 
-private fun formatFileSize(bytes: Long): String {
-    if (bytes <= 0) return "0 B"
-    val kb = bytes / 1024.0
-    val mb = kb / 1024.0
-    return if (mb >= 1.0) {
-        String.format(Locale.getDefault(), "%.2f MB", mb)
-    } else if (kb >= 1.0) {
-        String.format(Locale.getDefault(), "%.1f KB", kb)
-    } else {
-        "$bytes B"
-    }
-}

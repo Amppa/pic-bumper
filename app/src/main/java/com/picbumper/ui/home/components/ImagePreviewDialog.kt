@@ -43,9 +43,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.picbumper.domain.model.ImageItem
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.picbumper.util.FormatUtils
 
 @Composable
 fun ImagePreviewDialog(
@@ -56,15 +54,15 @@ fun ImagePreviewDialog(
 ) {
     var showInfo by remember { mutableStateOf(false) }
 
-    val dateFormat = remember { SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault()) }
-    val modifiedString = if (item.dateModified > 0) dateFormat.format(Date(item.dateModified * 1000L)) else "未知"
-    val takenString = if (item.dateTaken > 0) dateFormat.format(Date(item.dateTaken * 1000L)) else "未設定"
-    val formattedSize = remember(item.size) { formatFileSize(item.size) }
+    val modifiedString = remember(item.dateModified) { FormatUtils.formatDateTime(item.dateModified, fallback = "未知") }
+    val takenString = remember(item.dateTaken) { FormatUtils.formatDateTime(item.dateTaken, fallback = "未設定") }
+    val formattedSize = remember(item.size) { FormatUtils.formatFileSize(item.size) }
     val dimensionString = if (item.width > 0 && item.height > 0) {
         "${item.width} × ${item.height} ($formattedSize)"
     } else {
         formattedSize
     }
+
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -214,15 +212,3 @@ fun ImagePreviewDialog(
     }
 }
 
-private fun formatFileSize(bytes: Long): String {
-    if (bytes <= 0) return "0 B"
-    val kb = bytes / 1024.0
-    val mb = kb / 1024.0
-    return if (mb >= 1.0) {
-        String.format(Locale.getDefault(), "%.2f MB", mb)
-    } else if (kb >= 1.0) {
-        String.format(Locale.getDefault(), "%.1f KB", kb)
-    } else {
-        "$bytes B"
-    }
-}
