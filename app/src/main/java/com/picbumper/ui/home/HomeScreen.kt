@@ -69,6 +69,7 @@ fun HomeScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var renameInputName by remember { mutableStateOf("") }
+    var renameTargetItem by remember { mutableStateOf<ImageItem?>(null) }
     var previewItem by remember { mutableStateOf<ImageItem?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -109,14 +110,6 @@ fun HomeScreen(
                 checkedCount = uiState.checkedItemUris.size,
                 albumName = settings.albumName,
                 onClearSelection = { viewModel.clearMultiSelect() },
-                onRenameClick = {
-                    val selectedUri = uiState.checkedItemUris.firstOrNull()
-                    val selectedItem = uiState.albumItems.find { it.uri == selectedUri }
-                    if (selectedItem != null) {
-                        renameInputName = selectedItem.displayName
-                        showRenameDialog = true
-                    }
-                },
                 onDeleteClick = { showDeleteConfirmDialog = true },
                 onBumpClick = { viewModel.bumpCheckedItems() },
                 onRefreshClick = {
@@ -129,6 +122,7 @@ fun HomeScreen(
                 onSettingsClick = onNavigateToSettings
             )
         },
+
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { documentPickerLauncher.launch(arrayOf("image/*")) },
@@ -314,6 +308,11 @@ fun HomeScreen(
                     onDismiss = { previewItem = null },
                     onBump = {
                         viewModel.bumpSingleItem(item.uri)
+                    },
+                    onRename = {
+                        renameTargetItem = item
+                        renameInputName = item.displayName
+                        showRenameDialog = true
                     }
                 )
             }
@@ -330,18 +329,26 @@ fun HomeScreen(
                 )
             }
 
-            // Dialog: Rename selected photo
+            // Dialog: Rename photo
             if (showRenameDialog) {
                 RenameDialog(
                     inputName = renameInputName,
                     onNameChange = { renameInputName = it },
-                    onDismiss = { showRenameDialog = false },
+                    onDismiss = {
+                        showRenameDialog = false
+                        renameTargetItem = null
+                    },
                     onConfirm = {
                         showRenameDialog = false
-                        viewModel.renameSelectedItem(renameInputName)
+                        renameTargetItem?.let { target ->
+                            viewModel.renameItem(target.uri, renameInputName)
+                            previewItem = null
+                        }
+                        renameTargetItem = null
                     }
                 )
             }
+
 
             // Dialog: Ask whether to delete external original images
             if (uiState.externalUrisToAskDelete != null) {

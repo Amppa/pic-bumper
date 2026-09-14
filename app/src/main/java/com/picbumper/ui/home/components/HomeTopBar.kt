@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -35,7 +34,6 @@ fun HomeTopBar(
     checkedCount: Int,
     albumName: String,
     onClearSelection: () -> Unit,
-    onRenameClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onBumpClick: () -> Unit,
     onRefreshClick: () -> Unit,
@@ -56,15 +54,6 @@ fun HomeTopBar(
                 }
             },
             actions = {
-                if (checkedCount == 1) {
-                    IconButton(onClick = onRenameClick) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Rename selected photo",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Default.Delete,

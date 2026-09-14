@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -45,7 +46,8 @@ import java.util.Locale
 fun ImagePreviewDialog(
     item: ImageItem,
     onDismiss: () -> Unit,
-    onBump: () -> Unit
+    onBump: () -> Unit,
+    onRename: () -> Unit
 ) {
     val dateString = if (item.dateModified > 0) {
         val sdf = SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault())
@@ -83,7 +85,7 @@ fun ImagePreviewDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color.Black.copy(alpha = 0.6f))
-                        .padding(horizontal = 8.dp, vertical = 12.dp)
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
                         .align(Alignment.TopCenter),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -102,8 +104,15 @@ fun ImagePreviewDialog(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
                             .weight(1f)
-                            .padding(horizontal = 8.dp)
+                            .padding(horizontal = 4.dp)
                     )
+                    IconButton(onClick = onRename) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Rename photo",
+                            tint = Color.White
+                        )
+                    }
                 }
 
                 // Bottom Action Footer Overlay

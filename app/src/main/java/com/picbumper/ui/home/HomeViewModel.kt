@@ -258,10 +258,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun renameSelectedItem(inputName: String) {
-        val checkedUris = _uiState.value.checkedItemUris
-        if (checkedUris.size != 1) return
-        val targetUri = checkedUris.first()
+    fun renameItem(targetUri: Uri, inputName: String) {
         val targetItem = _uiState.value.albumItems.find { it.uri == targetUri } ?: return
 
         val trimmedName = inputName.trim()
@@ -303,6 +300,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
 
     fun onSystemWriteFinished(success: Boolean) {
         val pendingAction = _uiState.value.pendingRenameAction
