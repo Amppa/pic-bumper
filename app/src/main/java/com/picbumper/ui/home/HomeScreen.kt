@@ -48,7 +48,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.picbumper.domain.model.ImageItem
 import com.picbumper.ui.home.components.DeleteConfirmDialog
+import com.picbumper.ui.home.components.DuplicateImportDialog
 import com.picbumper.ui.home.components.EmptyAlbumView
+
 import com.picbumper.ui.home.components.ExternalDeleteDialog
 import com.picbumper.ui.home.components.FloatingStatusCapsule
 import com.picbumper.ui.home.components.HomeTopBar
@@ -358,9 +360,24 @@ fun HomeScreen(
                     onConfirm = { viewModel.onConfirmExternalDelete() }
                 )
             }
+
+            // Dialog: Duplicate file import collision comparison
+            uiState.pendingCollision?.let { collision ->
+                DuplicateImportDialog(
+                    existingItem = collision.existingItem,
+                    newUri = collision.newUri,
+                    newDisplayName = collision.newDisplayName,
+                    newSize = collision.newSize,
+                    newDateModified = collision.newDateModified,
+                    onKeepBoth = { viewModel.resolveCollisionKeepBoth() },
+                    onReplace = { viewModel.resolveCollisionReplace() },
+                    onSkip = { viewModel.resolveCollisionSkip() }
+                )
+            }
         }
     }
 }
+
 
 private fun checkMediaPermission(context: Context): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

@@ -552,6 +552,40 @@ class MediaBumperRepository(private val context: Context) {
         return lastSegment?.substringAfterLast(':')?.substringAfterLast('/')
     }
 
+    fun queryDateModified(uri: Uri): Long {
+        try {
+            contentResolver.query(uri, arrayOf(MediaStore.Images.Media.DATE_MODIFIED), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) {
+                    return cursor.getLong(0)
+                }
+            }
+        } catch (_: Exception) {}
+        return System.currentTimeMillis() / 1000L
+    }
+
+    suspend fun replaceExistingImageInAlbum(
+        existingUri: Uri,
+        newSourceUri: Uri,
+        displayName: String,
+        settings: BumpSettings
+    ): Uri? = withContext(Dispatchers.IO) {
+        val timestampSec = System.currentTimeMillis() / 1000
+        val timestampMillis = timestampSec * 1000
+
+        val newUri = insertImageToAlbum(
+            sourceUri = newSourceUri,
+            displayName = displayName,
+            timestampSec = timestampSec,
+            timestampMillis = timestampMillis,
+            settings = settings
+        )
+
+        if (newUri != null) {
+            deleteSelfOwnedUri(existingUri)
+        }
+        newUri
+    }
+
     private fun queryFileSize(uri: Uri): Long {
         try {
             contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
@@ -562,6 +596,7 @@ class MediaBumperRepository(private val context: Context) {
         } catch (_: Exception) {}
         return 0L
     }
+
 
     private fun inferMimeType(name: String): String {
         val lower = name.lowercase(Locale.ROOT)

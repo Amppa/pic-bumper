@@ -20,6 +20,16 @@ import kotlinx.coroutines.launch
 
 const val RECENT_THRESHOLD_SECONDS = 30 * 60L // 30 minutes
 
+data class DuplicateCollisionInfo(
+    val existingItem: ImageItem,
+    val newUri: Uri,
+    val newDisplayName: String,
+    val newSize: Long,
+    val newDateModified: Long,
+    val remainingUris: List<Uri>,
+    val accumulatedItemsToBump: List<ImageItem>
+)
+
 data class HomeUiState(
     val albumItems: List<ImageItem> = emptyList(),
     val checkedItemUris: Set<Uri> = emptySet(),
@@ -30,6 +40,7 @@ data class HomeUiState(
     val systemDeletePendingUris: List<Uri>? = null,
     val systemWritePendingUris: List<Uri>? = null,
     val pendingRenameAction: Pair<Uri, String>? = null,
+    val pendingCollision: DuplicateCollisionInfo? = null,
     val lastRefreshedAt: Long = System.currentTimeMillis()
 ) {
     val recentItems: List<ImageItem>
@@ -84,17 +95,126 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Triggered when the user taps the floating [+] button and selects external images.
-     * Bumps them directly into the dedicated album directory, then refreshes the gallery.
+     * Checks for filename collisions in target album before copying.
      */
     fun onNewImagesSelected(uris: List<Uri>) {
         if (uris.isEmpty()) return
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessing = true, statusMessage = null) }
             val currentSettings = settings.value
-            val resolvedItems = bumperRepository.resolveImageItems(uris, currentSettings.albumName)
-            bumpItemsInternal(resolvedItems)
+            processIncomingUris(
+                urisToProcess = uris,
+                accumulatedItems = emptyList(),
+                currentSettings = currentSettings
+            )
         }
     }
+
+    private suspend fun processIncomingUris(
+        urisToProcess: List<Uri>,
+        accumulatedItems: List<ImageItem>,
+        currentSettings: BumpSettings
+    ) {
+        if (urisToProcess.isEmpty()) {
+            _uiState.update { it.copy(isProcessing = false, pendingCollision = null) }
+            if (accumulatedItems.isNotEmpty()) {
+                bumpItemsInternal(accumulatedItems)
+            }
+            return
+        }
+
+        val nextUri = urisToProcess.first()
+        val remainingUris = urisToProcess.drop(1)
+
+        val resolvedItem = bumperRepository.resolveImageItems(listOf(nextUri), currentSettings.albumName).firstOrNull()
+        if (resolvedItem == null) {
+            processIncomingUris(remainingUris, accumulatedItems, currentSettings)
+            return
+        }
+
+        val existingDuplicate = _uiState.value.albumItems.find {
+            it.displayName.equals(resolvedItem.displayName, ignoreCase = true)
+        }
+
+        if (existingDuplicate != null) {
+            val dateModified = bumperRepository.queryDateModified(nextUri)
+            val collisionInfo = DuplicateCollisionInfo(
+                existingItem = existingDuplicate,
+                newUri = nextUri,
+                newDisplayName = resolvedItem.displayName,
+                newSize = resolvedItem.size,
+                newDateModified = dateModified,
+                remainingUris = remainingUris,
+                accumulatedItemsToBump = accumulatedItems
+            )
+            _uiState.update {
+                it.copy(
+                    isProcessing = false,
+                    pendingCollision = collisionInfo
+                )
+            }
+        } else {
+            processIncomingUris(remainingUris, accumulatedItems + resolvedItem, currentSettings)
+        }
+    }
+
+    fun resolveCollisionKeepBoth() {
+        val collision = _uiState.value.pendingCollision ?: return
+        _uiState.update { it.copy(pendingCollision = null, isProcessing = true) }
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            val resolvedItem = ImageItem(
+                uri = collision.newUri,
+                displayName = collision.newDisplayName,
+                size = collision.newSize,
+                isFromDirectoryA = false
+            )
+            processIncomingUris(
+                urisToProcess = collision.remainingUris,
+                accumulatedItems = collision.accumulatedItemsToBump + resolvedItem,
+                currentSettings = currentSettings
+            )
+        }
+    }
+
+    fun resolveCollisionReplace() {
+        val collision = _uiState.value.pendingCollision ?: return
+        _uiState.update { it.copy(pendingCollision = null, isProcessing = true) }
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            val newUri = bumperRepository.replaceExistingImageInAlbum(
+                existingUri = collision.existingItem.uri,
+                newSourceUri = collision.newUri,
+                displayName = collision.newDisplayName,
+                settings = currentSettings
+            )
+            loadAlbumImages(currentSettings.albumName)
+
+            val updatedAccumulated = collision.accumulatedItemsToBump
+            if (newUri != null) {
+                _uiState.update { it.copy(statusMessage = "已將相簿內既有檔案覆蓋取代") }
+            }
+            processIncomingUris(
+                urisToProcess = collision.remainingUris,
+                accumulatedItems = updatedAccumulated,
+                currentSettings = currentSettings
+            )
+        }
+    }
+
+    fun resolveCollisionSkip() {
+        val collision = _uiState.value.pendingCollision ?: return
+        _uiState.update { it.copy(pendingCollision = null, isProcessing = true) }
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            processIncomingUris(
+                urisToProcess = collision.remainingUris,
+                accumulatedItems = collision.accumulatedItemsToBump,
+                currentSettings = currentSettings
+            )
+        }
+    }
+
 
     fun toggleItemCheck(uri: Uri) {
         _uiState.update { current ->
