@@ -130,22 +130,15 @@ fun SettingsScreen(
                     .padding(horizontal = 4.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "時間屬性設定",
+                    text = "屬性設定",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
 
-                val activeExtras = mutableListOf<String>()
-                if (settings.overrideDateAdded) activeExtras.add("DATE_ADDED")
-                if (settings.overrideDateTaken) activeExtras.add("DATE_TAKEN")
-                if (settings.overrideExif) activeExtras.add("EXIF")
-
-                val subtitleText = "選擇置頂時，要修改的Metadata"
-
                 Text(
-                    text = subtitleText,
+                    text = "選擇要修改的時間屬性",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -162,16 +155,107 @@ fun SettingsScreen(
                     .padding(horizontal = 4.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "重新命名策略",
+                    text = "重新命名設定",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "系統依照是否授權，自動選擇是否彈窗",
+                    text = "Android 會要求取得重新命名權限",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Dialog 1: Time Strategy Dialog
+            if (showTimeStrategyDialog) {
+                AlertDialog(
+                    onDismissRequest = { showTimeStrategyDialog = false },
+                    title = {
+                        Text(
+                            text = "屬性設定",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            // Section 1: Fixed mandatory item (DATE_MODIFIED)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = true,
+                                    onCheckedChange = null,
+                                    enabled = false
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = "檔案修改時間 (DATE_MODIFIED)",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "基礎置頂依據，相容性最高且極速不產生重複檔。",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "進階相容選項（若您的相簿或軟體仍無法置頂才需勾選）：",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+
+                            // Item 2: DATE_ADDED
+                            DialogCheckboxRow(
+                                title = "檔案新增時間 (DATE_ADDED)",
+                                subtitle = "部分系統相簿使用；若開啟，舊圖片可能需複製產生新檔。",
+                                checked = settings.overrideDateAdded,
+                                onCheckedChange = { viewModel.setOverrideDateAdded(it) }
+                            )
+
+                            // Item 3: DATE_TAKEN
+                            DialogCheckboxRow(
+                                title = "相片拍攝時間 (DATE_TAKEN)",
+                                subtitle = "部分手機原生相簿（如小米、華為、OPPO 相簿）依拍攝時間排序時使用。",
+                                checked = settings.overrideDateTaken,
+                                onCheckedChange = { viewModel.setOverrideDateTaken(it) }
+                            )
+
+                            // Item 4: EXIF
+                            DialogCheckboxRow(
+                                title = "寫入相片 EXIF 資訊時間",
+                                subtitle = "將當前時間直接寫入 JPG 圖檔內部的 EXIF 拍攝資訊標籤。",
+                                checked = settings.overrideExif,
+                                onCheckedChange = { viewModel.setOverrideExif(it) }
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showTimeStrategyDialog = false }) {
+                            Text("完成", fontWeight = FontWeight.Bold)
+                        }
+                    }
                 )
             }
 

@@ -353,7 +353,7 @@ class MediaBumperRepository(private val context: Context) {
         }
     }
 
-    private fun deleteSelfOwnedUri(uri: Uri): Boolean {
+    fun deleteSelfOwnedUri(uri: Uri): Boolean {
         val targetUri = toMediaStoreUri(uri) ?: uri
 
         // 1. Try direct File API deletion first (silent, no OS consent popup)

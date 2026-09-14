@@ -362,25 +362,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         if (checkedUris.isEmpty()) return
 
         viewModelScope.launch {
-            val contentResolver = getApplication<Application>().contentResolver
             val failedUris = mutableListOf<Uri>()
             checkedUris.forEach { uri ->
-                try {
-                    val rows = contentResolver.delete(uri, null, null)
-                    if (rows <= 0) {
-                        failedUris.add(uri)
-                    }
-                } catch (_: Exception) {
+                val deleted = bumperRepository.deleteSelfOwnedUri(uri)
+                if (!deleted) {
                     failedUris.add(uri)
                 }
             }
 
             if (failedUris.isNotEmpty()) {
+                val mediaStoreUris = failedUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
                 _uiState.update {
                     it.copy(
                         checkedItemUris = emptySet(),
                         isMultiSelectMode = false,
-                        systemDeletePendingUris = failedUris
+                        systemDeletePendingUris = mediaStoreUris.ifEmpty { failedUris }
                     )
                 }
             } else {

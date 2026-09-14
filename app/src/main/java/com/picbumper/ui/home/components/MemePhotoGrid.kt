@@ -59,7 +59,9 @@ fun MemePhotoGrid(
         checkedItemUris = checkedItemUris,
         isMultiSelect = isMultiSelectMode,
         thumbSize = thumbnailSize,
-        primaryColor = primaryColorArgb
+        primaryColor = primaryColorArgb,
+        onClick = onClick,
+        onLongClick = onLongClick
     )
 
     AndroidView(
@@ -106,8 +108,8 @@ fun MemePhotoGrid(
 private class MemeGridAdapter(
     private var primaryColorArgb: Int,
     private var thumbnailSize: Int,
-    private val onClick: (ImageItem) -> Unit,
-    private val onLongClick: (ImageItem) -> Unit
+    private var onClick: (ImageItem) -> Unit,
+    private var onLongClick: (ImageItem) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var entries: List<GridEntry> = emptyList()
@@ -119,13 +121,17 @@ private class MemeGridAdapter(
         checkedItemUris: Set<Uri>,
         isMultiSelect: Boolean,
         thumbSize: Int,
-        primaryColor: Int
+        primaryColor: Int,
+        onClick: (ImageItem) -> Unit,
+        onLongClick: (ImageItem) -> Unit
     ) {
         this.entries = entries
         this.checkedUris = checkedItemUris
         this.isMultiSelect = isMultiSelect
         this.thumbnailSize = thumbSize
         this.primaryColorArgb = primaryColor
+        this.onClick = onClick
+        this.onLongClick = onLongClick
         notifyDataSetChanged()
     }
 

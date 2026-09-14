@@ -2,6 +2,7 @@ package com.picbumper.ui.home
 
 import android.Manifest
 import android.content.Context
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -59,7 +61,7 @@ fun HomeScreen(
     var showRenameDialog by remember { mutableStateOf(false) }
     var renameInputName by remember { mutableStateOf("") }
     var renameTargetItem by remember { mutableStateOf<ImageItem?>(null) }
-    var previewIndex by remember { mutableStateOf<Int?>(null) }
+    var previewItemUri by remember { mutableStateOf<Uri?>(null) }
 
     val photoItems = remember(uiState.gridEntries) {
         uiState.gridEntries.filterIsInstance<GridEntry.Photo>().map { it.item }
@@ -163,10 +165,7 @@ fun HomeScreen(
                             if (uiState.isMultiSelectMode) {
                                 viewModel.toggleItemCheck(item.uri)
                             } else {
-                                val idx = photoItems.indexOfFirst { it.uri == item.uri }
-                                if (idx >= 0) {
-                                    previewIndex = idx
-                                }
+                                previewItemUri = item.uri
                             }
                         },
                         onLongClick = { item ->
@@ -196,21 +195,26 @@ fun HomeScreen(
             }
 
             // Dialog: Full-screen Image Preview Dialog
-            previewIndex?.let { index ->
-                if (photoItems.isNotEmpty()) {
-                    ImagePreviewDialog(
-                        items = photoItems,
-                        initialIndex = index,
-                        onDismiss = { previewIndex = null },
-                        onBump = { targetItem ->
-                            viewModel.bumpSingleItem(targetItem.uri)
-                        },
-                        onRename = { targetItem ->
-                            renameTargetItem = targetItem
-                            renameInputName = targetItem.displayName
-                            showRenameDialog = true
-                        }
-                    )
+            previewItemUri?.let { selectedUri ->
+                val currentIdx = photoItems.indexOfFirst { it.uri == selectedUri }
+                if (currentIdx >= 0) {
+                    key(selectedUri) {
+                        ImagePreviewDialog(
+                            items = photoItems,
+                            initialIndex = currentIdx,
+                            onDismiss = { previewItemUri = null },
+                            onBump = { targetItem ->
+                                viewModel.bumpSingleItem(targetItem.uri)
+                            },
+                            onRename = { targetItem ->
+                                renameTargetItem = targetItem
+                                renameInputName = targetItem.displayName
+                                showRenameDialog = true
+                            }
+                        )
+                    }
+                } else {
+                    previewItemUri = null
                 }
             }
 
@@ -239,7 +243,7 @@ fun HomeScreen(
                         showRenameDialog = false
                         renameTargetItem?.let { target ->
                             viewModel.renameItem(target.uri, renameInputName)
-                            previewIndex = null
+                            previewItemUri = null
                         }
                         renameTargetItem = null
                     }

@@ -63,7 +63,7 @@ fun RenameDialog(
     val initialDotIndex = inputName.lastIndexOf('.')
     val initialCursorPos = if (initialDotIndex > 0) initialDotIndex else inputName.length
 
-    var tfValue by remember {
+    var tfValue by remember(inputName) {
         mutableStateOf(
             TextFieldValue(
                 text = inputName,

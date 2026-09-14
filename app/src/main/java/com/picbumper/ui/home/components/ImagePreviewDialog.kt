@@ -75,6 +75,14 @@ fun ImagePreviewDialog(
         initialPage = validInitialIndex,
         pageCount = { items.size }
     )
+
+    LaunchedEffect(initialIndex) {
+        val targetIndex = initialIndex.coerceIn(0, items.size - 1)
+        if (targetIndex in 0 until items.size && pagerState.currentPage != targetIndex) {
+            pagerState.scrollToPage(targetIndex)
+        }
+    }
+
     val currentItem = items.getOrNull(pagerState.currentPage) ?: return
 
     var isZoomed by remember { mutableStateOf(false) }
@@ -105,10 +113,11 @@ fun ImagePreviewDialog(
             Box(modifier = Modifier.fillMaxSize()) {
                 HorizontalPager(
                     state = pagerState,
+                    key = { page -> items.getOrNull(page)?.uri ?: page },
                     userScrollEnabled = !isZoomed,
                     modifier = Modifier.fillMaxSize()
                 ) { page ->
-                    val item = items[page]
+                    val item = items.getOrNull(page) ?: return@HorizontalPager
                     ZoomablePreviewImage(
                         item = item,
                         onSwipeDownDismiss = onDismiss,
