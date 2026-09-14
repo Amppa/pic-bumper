@@ -16,7 +16,7 @@ Ever wanted to reply with a meme on **Bilibili**, **WeChat**, or social media, b
 
 - ⚡ **Instant Top Placement**: Move your favorite meme to the first spot in your album with a single tap.
 - 🚀 **3-Tier Thumbnail Quality**: Choose between 100px (ultra-fast), 150px (balanced), and 240px (high-res) for silky smooth 120Hz grid scrolling.
-- 🖼️ **Full-Screen Preview & On-Demand Metadata**: Tap any meme to view full screen, inspect image dimensions/size/timestamps via top-left Info toggle, or rename on the spot.
+- 🖼️ **Full-Screen Preview & Smooth Gestures**: Tap any meme to view full screen. **Swipe left/right** to browse through your photos, **pinch-to-zoom or double-tap** to magnify details, **swipe down to dismiss**, inspect dimensions/size/timestamps via the Info toggle, or rename on the spot.
 - 🔄 **Smart Duplicate Import Resolution**: Importing a meme with the same filename pops up a side-by-side comparison dialog (Keep Both, Replace, or Skip).
 - 📁 **Keep Original Names**: Doesn't mess up your file names—your files keep their original names.
 - 🗑️ **No Album Clutter**: When you re-bump a meme you used before, it automatically cleans up the older duplicate silently.

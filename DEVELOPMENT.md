@@ -91,6 +91,13 @@ When importing external files with matching filenames in `Pictures/PicBumper`:
 - **Replace**: Deletes old file and overwrites with incoming file.
 - **Skip**: Cancels import for duplicate file.
 
+### G. Full-Screen Interactive Preview & Gesture Coordination
+The preview dialog (`ImagePreviewDialog.kt`) provides an immersive, conflict-free touch gesture experience:
+- **Horizontal Swipe Navigation (`HorizontalPager`)**: Enables smooth left/right swiping between all album photos. Pages are keyed by immutable `item.uri` to prevent desynchronization during asynchronous album mutations.
+- **Pinch-to-Zoom & Pan Isolation**: Supports 1x–5x pinch zooming (`Modifier.transformable`) and double-tap toggle (1x ↔ 2.5x). When zoomed in (`scale > 1.05f`), `HorizontalPager.userScrollEnabled` is temporarily set to `false`, allowing smooth panning without accidentally flipping pages.
+- **Vertical Drag Down to Dismiss**: When at 1x zoom, downward drags dismiss the preview (`detectVerticalDragGestures`), isolated cleanly from horizontal paging.
+- **Immutable URI Identity**: `HomeScreen` tracks the active preview with `previewItemUri: Uri?` rather than integer indices, completely immunizing the UI from index drift when items are bumped, reordered, or deleted.
+
 ---
 
 ## 3. Project Structure
@@ -104,25 +111,28 @@ pic-bumper/
 │   │       ├── MainActivity.kt               # Entry point, navigation, and IntentSender handling
 │   │       ├── PicBumperApplication.kt        # Application class & Coil ImageLoaderFactory
 │   │       ├── data/
-│   │       │   ├── MediaBumperRepository.kt   # MediaStore insertion, stream copy, EXIF, deletion
-│   │       │   └── SettingsRepository.kt      # DataStore Preferences persistence
+│   │       │   ├── MediaBumperRepository.kt   # MediaStore insertion, stream copy, EXIF, File API deletion
+│   │       │   ├── SettingsRepository.kt      # DataStore Preferences persistence
+│   │       │   └── fetcher/
+│   │       │       └── MediaStoreThumbnailFetcher.kt # Optimized thumbnail fetcher
 │   │       ├── domain/model/
 │   │       │   ├── BumpSettings.kt            # Settings data model and thumbnail size preference
 │   │       │   └── ImageItem.kt               # @Immutable media item model with metadata
 │   │       ├── ui/
 │   │       │   ├── home/
-│   │       │   │   ├── HomeScreen.kt          # Main gallery grid and dialog orchestration
-│   │       │   │   ├── HomeViewModel.kt       # UiState and collision/bump orchestration
+│   │       │   │   ├── HomeScreen.kt          # Main gallery orchestration & Uri-keyed preview
+│   │       │   │   ├── HomeViewModel.kt       # UiState, bump, delete, and collision orchestration
+│   │       │   │   ├── GridEntry.kt           # Header vs Photo sealed entries for time grouping
 │   │       │   │   └── components/
 │   │       │   │       ├── DuplicateImportDialog.kt # Side-by-side import collision dialog
 │   │       │   │       ├── EmptyAlbumView.kt   # Empty state view
 │   │       │   │       ├── FloatingStatusCapsule.kt # Floating status pill overlay
-│   │       │   │       ├── HomeDialogs.kt      # Rename and delete confirm dialogs
+│   │       │   │       ├── HomeDialogs.kt      # Keyed rename and delete confirm dialogs
 │   │       │   │       ├── HomeTopBar.kt       # Multi-select & main action top bar
-│   │       │   │       ├── ImageGridCard.kt    # LazyGrid card with hardware bitmaps
-│   │       │   │       └── ImagePreviewDialog.kt # Full-screen preview with top-left Info card
+│   │       │   │       ├── MemePhotoGrid.kt    # High-performance AndroidView RecyclerView grid (120Hz)
+│   │       │   │       └── ImagePreviewDialog.kt # Full-screen preview with horizontal swipe & zoom gestures
 │   │       │   ├── settings/
-│   │       │   │   ├── SettingsScreen.kt      # Material 3 preference screen & 3-tier thumbnail dialog
+│   │       │   │   ├── SettingsScreen.kt      # Material 3 preference screen with time & rename dialogs
 │   │       │   │   └── SettingsViewModel.kt   # Preference mutation bindings
 │   │       │   └── theme/
 │   │       │       ├── Color.kt               # AMOLED pure black palette
