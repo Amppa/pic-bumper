@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.picbumper.domain.model.ImageItem
+import com.picbumper.ui.home.GridEntry
 import com.picbumper.ui.home.components.DeleteConfirmDialog
 import com.picbumper.ui.home.components.DuplicateImportDialog
 import com.picbumper.ui.home.components.EmptyAlbumView
@@ -58,7 +59,11 @@ fun HomeScreen(
     var showRenameDialog by remember { mutableStateOf(false) }
     var renameInputName by remember { mutableStateOf("") }
     var renameTargetItem by remember { mutableStateOf<ImageItem?>(null) }
-    var previewItem by remember { mutableStateOf<ImageItem?>(null) }
+    var previewIndex by remember { mutableStateOf<Int?>(null) }
+
+    val photoItems = remember(uiState.gridEntries) {
+        uiState.gridEntries.filterIsInstance<GridEntry.Photo>().map { it.item }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -158,7 +163,10 @@ fun HomeScreen(
                             if (uiState.isMultiSelectMode) {
                                 viewModel.toggleItemCheck(item.uri)
                             } else {
-                                previewItem = item
+                                val idx = photoItems.indexOfFirst { it.uri == item.uri }
+                                if (idx >= 0) {
+                                    previewIndex = idx
+                                }
                             }
                         },
                         onLongClick = { item ->
@@ -188,19 +196,22 @@ fun HomeScreen(
             }
 
             // Dialog: Full-screen Image Preview Dialog
-            previewItem?.let { item ->
-                ImagePreviewDialog(
-                    item = item,
-                    onDismiss = { previewItem = null },
-                    onBump = {
-                        viewModel.bumpSingleItem(item.uri)
-                    },
-                    onRename = {
-                        renameTargetItem = item
-                        renameInputName = item.displayName
-                        showRenameDialog = true
-                    }
-                )
+            previewIndex?.let { index ->
+                if (photoItems.isNotEmpty()) {
+                    ImagePreviewDialog(
+                        items = photoItems,
+                        initialIndex = index,
+                        onDismiss = { previewIndex = null },
+                        onBump = { targetItem ->
+                            viewModel.bumpSingleItem(targetItem.uri)
+                        },
+                        onRename = { targetItem ->
+                            renameTargetItem = targetItem
+                            renameInputName = targetItem.displayName
+                            showRenameDialog = true
+                        }
+                    )
+                }
             }
 
             // Dialog: Confirm deleting selected photos from album
