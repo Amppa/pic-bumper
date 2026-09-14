@@ -255,9 +255,9 @@ class MediaBumperRepository(private val context: Context) {
 
         // 2. Fallback to direct File API timestamp modification (for legacy storage / reinstalled app files)
         try {
-            val path = queryFilePath(targetUri)
-            if (!path.isNullOrBlank()) {
-                val file = File(path)
+            val filePath: String? = queryFilePath(targetUri)
+            if (!filePath.isNullOrBlank()) {
+                val file = File(filePath)
                 if (file.exists() && file.canWrite()) {
                     val touched = file.setLastModified(timestampMillis)
                     if (touched) {
@@ -358,9 +358,9 @@ class MediaBumperRepository(private val context: Context) {
 
         // 1. Try direct File API deletion first (silent, no OS consent popup)
         try {
-            val path = queryFilePath(targetUri)
-            if (!path.isNullOrBlank()) {
-                val file = File(path)
+            val filePath: String? = queryFilePath(targetUri)
+            if (!filePath.isNullOrBlank()) {
+                val file = File(filePath)
                 if (file.exists() && file.delete()) {
                     try { contentResolver.delete(targetUri, null, null) } catch (_: Exception) {}
                     return true
@@ -673,6 +673,23 @@ class MediaBumperRepository(private val context: Context) {
         return mimeType == "image/jpeg" ||
                 displayName.endsWith(".jpg", ignoreCase = true) ||
                 displayName.endsWith(".jpeg", ignoreCase = true)
+    }
+
+    fun queryFilePath(uri: Uri): String? {
+        val targetUri = toMediaStoreUri(uri) ?: uri
+        try {
+            val projection = arrayOf(MediaStore.Images.Media.DATA)
+            contentResolver.query(targetUri, projection, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val idx = cursor.getColumnIndex(MediaStore.Images.Media.DATA)
+                    if (idx != -1) {
+                        val path = cursor.getString(idx)
+                        if (!path.isNullOrBlank()) return path
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+        return null
     }
 }
 
