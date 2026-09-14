@@ -10,6 +10,7 @@ data class ImageItem(
     val size: Long = 0L,
     val isFromDirectoryA: Boolean = false,
     val dateModified: Long = 0L,
+    val dateAdded: Long = 0L,
     val width: Int = 0,
     val height: Int = 0,
     val dateTaken: Long = 0L,

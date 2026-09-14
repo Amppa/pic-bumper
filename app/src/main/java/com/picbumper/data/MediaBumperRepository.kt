@@ -55,6 +55,7 @@ class MediaBumperRepository(private val context: Context) {
             MediaStore.Images.Media.DISPLAY_NAME,
             MediaStore.Images.Media.SIZE,
             MediaStore.Images.Media.DATE_MODIFIED,
+            MediaStore.Images.Media.DATE_ADDED,
             MediaStore.Images.Media.WIDTH,
             MediaStore.Images.Media.HEIGHT,
             MediaStore.Images.Media.DATE_TAKEN
@@ -84,6 +85,7 @@ class MediaBumperRepository(private val context: Context) {
                 val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
                 val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
                 val dateModifiedColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
+                val dateAddedColumn = cursor.getColumnIndex(MediaStore.Images.Media.DATE_ADDED)
                 val widthColumn = cursor.getColumnIndex(MediaStore.Images.Media.WIDTH)
                 val heightColumn = cursor.getColumnIndex(MediaStore.Images.Media.HEIGHT)
                 val dateTakenColumn = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN)
@@ -93,6 +95,7 @@ class MediaBumperRepository(private val context: Context) {
                     val name = cursor.getString(nameColumn) ?: "image_$id.png"
                     val size = cursor.getLong(sizeColumn)
                     val dateModified = cursor.getLong(dateModifiedColumn)
+                    val dateAdded = if (dateAddedColumn >= 0) cursor.getLong(dateAddedColumn) else 0L
                     val msWidth = if (widthColumn >= 0) cursor.getInt(widthColumn) else 0
                     val msHeight = if (heightColumn >= 0) cursor.getInt(heightColumn) else 0
                     val rawDateTaken = if (dateTakenColumn >= 0) cursor.getLong(dateTakenColumn) else 0L
@@ -111,6 +114,7 @@ class MediaBumperRepository(private val context: Context) {
                             size = size,
                             isFromDirectoryA = true,
                             dateModified = dateModified,
+                            dateAdded = dateAdded,
                             width = w,
                             height = h,
                             dateTaken = dateTaken

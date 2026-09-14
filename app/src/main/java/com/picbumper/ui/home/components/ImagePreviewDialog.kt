@@ -55,6 +55,7 @@ fun ImagePreviewDialog(
     var showInfo by remember { mutableStateOf(false) }
 
     val modifiedString = remember(item.dateModified) { FormatUtils.formatDateTime(item.dateModified, fallback = "未知") }
+    val addedString = remember(item.dateAdded) { FormatUtils.formatDateTime(item.dateAdded, fallback = "未設定") }
     val takenString = remember(item.dateTaken) { FormatUtils.formatDateTime(item.dateTaken, fallback = "未設定") }
     val formattedSize = remember(item.size) { FormatUtils.formatFileSize(item.size) }
     val dimensionString = if (item.width > 0 && item.height > 0) {
@@ -154,15 +155,21 @@ fun ImagePreviewDialog(
                                 fontSize = 12.sp,
                                 color = Color.White.copy(alpha = 0.88f)
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "新增時間：$addedString",
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.88f)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "拍攝時間：$takenString",
                                 fontSize = 12.sp,
                                 color = Color.White.copy(alpha = 0.88f)
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = dimensionString,
+                                text = "大小：$dimensionString",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = Color.White.copy(alpha = 0.88f)

@@ -254,7 +254,7 @@ private class MemeGridAdapter(
     class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val titleTextView: TextView = view.findViewById(R.id.header_title)
         fun bind(header: GridEntry.Header) {
-            titleTextView.text = "${header.title} (${header.count} 張)"
+            titleTextView.text = header.title
         }
     }
 

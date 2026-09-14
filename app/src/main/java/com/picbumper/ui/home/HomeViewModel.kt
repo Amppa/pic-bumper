@@ -79,7 +79,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     checkedItemUris = emptySet(),
                     isMultiSelectMode = false,
                     lastRefreshedAt = refreshedAt,
-                    statusMessage = if (showFeedback) "已重新整理相簿時序" else it.statusMessage
+                    statusMessage = if (showFeedback) "相簿已更新" else it.statusMessage
                 )
             }
         }
@@ -93,14 +93,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         val entries = mutableListOf<GridEntry>()
         if (recent.isNotEmpty()) {
-            entries.add(GridEntry.Header(title = "近 30 分鐘常用", count = recent.size, id = "header_recent"))
+            entries.add(GridEntry.Header(title = "30分鐘以內照片", count = recent.size, id = "header_recent"))
             recent.forEach { item ->
                 entries.add(GridEntry.Photo(item = item))
             }
         }
         if (older.isNotEmpty()) {
-            val title = if (recent.isEmpty()) "較舊照片" else "30 分鐘前照片"
-            entries.add(GridEntry.Header(title = title, count = older.size, id = "header_older"))
+            entries.add(GridEntry.Header(title = "30分鐘以前的照片", count = older.size, id = "header_older"))
             older.forEach { item ->
                 entries.add(GridEntry.Photo(item = item))
             }

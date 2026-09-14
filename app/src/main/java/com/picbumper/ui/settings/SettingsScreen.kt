@@ -142,7 +142,7 @@ fun SettingsScreen(
                 if (settings.overrideDateTaken) activeExtras.add("DATE_TAKEN")
                 if (settings.overrideExif) activeExtras.add("EXIF")
 
-                val subtitleText = "選擇相片置頂時所覆寫的時間屬性"
+                val subtitleText = "選擇置頂時，要修改的Metadata"
 
                 Text(
                     text = subtitleText,
@@ -170,7 +170,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = if (settings.silentRename) {
-                        "無彈窗模式 (複製為自持新檔，極速順暢)"
+                        "免授權彈窗模式 (自動轉存 PicBumper 副本，極速順暢)"
                     } else {
                         "系統授權彈窗模式 (保持原檔案 URI)"
                     },
@@ -185,7 +185,7 @@ fun SettingsScreen(
                     onDismissRequest = { showRenameStrategyDialog = false },
                     title = {
                         Text(
-                            text = "重命名策略設定",
+                            text = "重新命名",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge
                         )
@@ -197,8 +197,8 @@ fun SettingsScreen(
                                 .verticalScroll(rememberScrollState())
                         ) {
                             DialogRadioRow(
-                                title = "無彈窗模式 (預設推薦)",
-                                subtitle = "重命名受限的舊照片時，自動複製為新的自持檔案並清理舊副本，100% 零彈窗打擾。",
+                                title = "免授權彈窗模式 (預設)",
+                                subtitle = "重命名受限的照片時，自建檔案並刪除舊檔，無彈窗。",
                                 selected = settings.silentRename,
                                 onClick = { viewModel.setSilentRename(true) }
                             )
@@ -209,7 +209,7 @@ fun SettingsScreen(
 
                             DialogRadioRow(
                                 title = "系統授權彈窗模式",
-                                subtitle = "保持原檔案 URI，重命名非自建照片時由 Android 系統彈出授權對話框。",
+                                subtitle = "保持原檔案 URI。Android 系統會每次要求授權。",
                                 selected = !settings.silentRename,
                                 onClick = { viewModel.setSilentRename(false) }
                             )
