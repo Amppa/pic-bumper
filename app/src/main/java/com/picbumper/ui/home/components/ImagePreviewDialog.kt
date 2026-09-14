@@ -5,10 +5,10 @@ import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,9 +39,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.hypot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -181,16 +187,9 @@ private fun ZoomablePreviewImage(
     val animatedOffset by animateOffsetAsState(targetValue = offset, label = "offsetAnimation")
     val animatedSwipeDownY by animateFloatAsState(targetValue = swipeDownOffsetY, label = "swipeDownAnimation")
 
-    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
-        val newScale = (scale * zoomChange).coerceIn(1f, 5f)
-        scale = newScale
-        if (scale > 1.05f) {
-            offset += panChange
-        } else {
-            scale = 1f
-            offset = Offset.Zero
-        }
-    }
+    val coroutineScope = rememberCoroutineScope()
+    var lastTapTime by remember(item.uri) { mutableLongStateOf(0L) }
+    var lastTapPosition by remember(item.uri) { mutableStateOf(Offset.Zero) }
 
     LaunchedEffect(scale) {
         onZoomChanged(scale > 1.05f)
@@ -200,39 +199,105 @@ private fun ZoomablePreviewImage(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(item.uri) {
-                detectTapGestures(
-                    onTap = { onBackgroundClick() },
-                    onDoubleTap = {
-                        if (scale > 1.1f) {
-                            scale = 1f
-                            offset = Offset.Zero
+                val touchSlop = viewConfiguration.touchSlop
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    var dragTotal = Offset.Zero
+                    var isMultiTouch = false
+                    var isPullingDown = false
+                    var isHorizontalSwipe = false
+                    var isPanning = false
+
+                    do {
+                        val event = awaitPointerEvent()
+                        val activePointers = event.changes.filter { it.pressed }
+
+                        if (activePointers.size >= 2) {
+                            // 2 or more fingers: Multi-touch Pinch to Zoom and Pan
+                            isMultiTouch = true
+                            isPullingDown = false
+                            swipeDownOffsetY = 0f
+
+                            val zoomChange = event.calculateZoom()
+                            val panChange = event.calculatePan()
+
+                            val newScale = (scale * zoomChange).coerceIn(1f, 5f)
+                            scale = newScale
+                            if (scale > 1.05f) {
+                                offset += panChange
+                            } else {
+                                scale = 1f
+                                offset = Offset.Zero
+                            }
+                            event.changes.forEach { it.consume() }
+                        } else if (activePointers.size == 1 && !isMultiTouch) {
+                            val change = activePointers[0]
+                            val panChange = change.position - change.previousPosition
+
+                            if (scale > 1.05f) {
+                                // Zoomed in: 1-finger pan across the image
+                                isPanning = true
+                                offset += panChange
+                                change.consume()
+                            } else {
+                                // Normal 1x view
+                                dragTotal += panChange
+
+                                if (!isHorizontalSwipe && !isPullingDown) {
+                                    val dist = hypot(dragTotal.x, dragTotal.y)
+                                    if (dist > touchSlop) {
+                                        if (abs(dragTotal.x) > abs(dragTotal.y)) {
+                                            // Primarily horizontal swipe -> leave unconsumed for HorizontalPager!
+                                            isHorizontalSwipe = true
+                                        } else if (dragTotal.y > 0) {
+                                            // Primarily vertical drag downwards -> handle pull-down dismiss!
+                                            isPullingDown = true
+                                        }
+                                    }
+                                }
+
+                                if (isPullingDown) {
+                                    swipeDownOffsetY = (swipeDownOffsetY + panChange.y).coerceAtLeast(0f)
+                                    change.consume()
+                                }
+                                // If isHorizontalSwipe is true, we do NOT consume, allowing HorizontalPager to page!
+                            }
+                        }
+                    } while (event.changes.any { it.pressed })
+
+                    // When all pointers are released
+                    if (isPullingDown) {
+                        if (swipeDownOffsetY > 160f) {
+                            onSwipeDownDismiss()
                         } else {
-                            scale = 2.5f
-                            offset = Offset.Zero
+                            swipeDownOffsetY = 0f
+                        }
+                    } else if (!isMultiTouch && !isPanning && !isHorizontalSwipe && hypot(dragTotal.x, dragTotal.y) < touchSlop) {
+                        // Tap gesture
+                        val now = System.currentTimeMillis()
+                        val tapDist = hypot(down.position.x - lastTapPosition.x, down.position.y - lastTapPosition.y)
+                        if (now - lastTapTime < 300 && tapDist < touchSlop * 2) {
+                            // Double tap: toggle zoom
+                            lastTapTime = 0L
+                            if (scale > 1.1f) {
+                                scale = 1f
+                                offset = Offset.Zero
+                            } else {
+                                scale = 2.5f
+                                offset = Offset.Zero
+                            }
+                        } else {
+                            // First tap recorded
+                            lastTapTime = now
+                            lastTapPosition = down.position
+                            coroutineScope.launch {
+                                delay(320)
+                                if (System.currentTimeMillis() - lastTapTime >= 300 && lastTapTime != 0L) {
+                                    onBackgroundClick()
+                                }
+                            }
                         }
                     }
-                )
-            }
-            .transformable(state = transformableState)
-            .pointerInput(item.uri, scale) {
-                if (scale <= 1.05f) {
-                    detectVerticalDragGestures(
-                        onDragStart = { swipeDownOffsetY = 0f },
-                        onVerticalDrag = { change, dragAmount ->
-                            if (dragAmount > 0 || swipeDownOffsetY > 0) {
-                                swipeDownOffsetY = (swipeDownOffsetY + dragAmount).coerceAtLeast(0f)
-                                change.consume()
-                            }
-                        },
-                        onDragEnd = {
-                            if (swipeDownOffsetY > 150f) {
-                                onSwipeDownDismiss()
-                            } else {
-                                swipeDownOffsetY = 0f
-                            }
-                        },
-                        onDragCancel = { swipeDownOffsetY = 0f }
-                    )
                 }
             }
     ) {
