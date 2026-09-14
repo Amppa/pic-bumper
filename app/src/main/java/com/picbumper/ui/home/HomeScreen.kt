@@ -239,7 +239,7 @@ fun HomeScreen(
                         showRenameDialog = false
                         renameTargetItem?.let { target ->
                             viewModel.renameItem(target.uri, renameInputName)
-                            previewItem = null
+                            previewIndex = null
                         }
                         renameTargetItem = null
                     }

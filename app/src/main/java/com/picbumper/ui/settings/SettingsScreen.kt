@@ -225,9 +225,6 @@ fun SettingsScreen(
         }
     }
 }
-        }
-    }
-}
 
 
 @Composable
