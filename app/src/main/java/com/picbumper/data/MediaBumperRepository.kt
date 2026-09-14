@@ -32,11 +32,14 @@ class MediaBumperRepository(private val context: Context) {
                 val displayName = queryDisplayName(uri) ?: "image_${System.currentTimeMillis()}.png"
                 val size = queryFileSize(uri)
                 val isFromA = isUriInDirectoryA(uri, albumName)
+                val (w, h) = getImageDimensions(uri, 0, 0)
                 ImageItem(
                     uri = uri,
                     displayName = displayName,
                     size = size,
-                    isFromDirectoryA = isFromA
+                    isFromDirectoryA = isFromA,
+                    width = w,
+                    height = h
                 )
             }
         }
@@ -51,7 +54,10 @@ class MediaBumperRepository(private val context: Context) {
             MediaStore.Images.Media._ID,
             MediaStore.Images.Media.DISPLAY_NAME,
             MediaStore.Images.Media.SIZE,
-            MediaStore.Images.Media.DATE_MODIFIED
+            MediaStore.Images.Media.DATE_MODIFIED,
+            MediaStore.Images.Media.WIDTH,
+            MediaStore.Images.Media.HEIGHT,
+            MediaStore.Images.Media.DATE_TAKEN
         )
 
         val selection: String
@@ -78,23 +84,36 @@ class MediaBumperRepository(private val context: Context) {
                 val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
                 val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
                 val dateModifiedColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
+                val widthColumn = cursor.getColumnIndex(MediaStore.Images.Media.WIDTH)
+                val heightColumn = cursor.getColumnIndex(MediaStore.Images.Media.HEIGHT)
+                val dateTakenColumn = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN)
 
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
                     val name = cursor.getString(nameColumn) ?: "image_$id.png"
                     val size = cursor.getLong(sizeColumn)
                     val dateModified = cursor.getLong(dateModifiedColumn)
+                    val msWidth = if (widthColumn >= 0) cursor.getInt(widthColumn) else 0
+                    val msHeight = if (heightColumn >= 0) cursor.getInt(heightColumn) else 0
+                    val rawDateTaken = if (dateTakenColumn >= 0) cursor.getLong(dateTakenColumn) else 0L
+                    val dateTaken = if (rawDateTaken > 0) rawDateTaken / 1000L else 0L
+
                     val contentUri = android.content.ContentUris.withAppendedId(
                         MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                         id
                     )
+                    val (w, h) = getImageDimensions(contentUri, msWidth, msHeight)
+
                     result.add(
                         ImageItem(
                             uri = contentUri,
                             displayName = name,
                             size = size,
                             isFromDirectoryA = true,
-                            dateModified = dateModified
+                            dateModified = dateModified,
+                            width = w,
+                            height = h,
+                            dateTaken = dateTaken
                         )
                     )
                 }
@@ -103,6 +122,26 @@ class MediaBumperRepository(private val context: Context) {
 
         result
     }
+
+    private fun getImageDimensions(uri: Uri, mediaStoreWidth: Int, mediaStoreHeight: Int): Pair<Int, Int> {
+        if (mediaStoreWidth > 0 && mediaStoreHeight > 0) {
+            return Pair(mediaStoreWidth, mediaStoreHeight)
+        }
+        return try {
+            contentResolver.openInputStream(uri)?.use { inputStream ->
+                val options = android.graphics.BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
+                if (options.outWidth > 0 && options.outHeight > 0) {
+                    Pair(options.outWidth, options.outHeight)
+                } else Pair(0, 0)
+            } ?: Pair(0, 0)
+        } catch (_: Exception) {
+            Pair(0, 0)
+        }
+    }
+
 
     /**
      * Bump multiple images to the latest timestamp in the dedicated album directory.
