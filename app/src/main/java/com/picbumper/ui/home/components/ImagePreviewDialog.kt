@@ -6,8 +6,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -168,6 +169,17 @@ private fun ZoomablePreviewImage(
     val animatedOffset by animateOffsetAsState(targetValue = offset, label = "offsetAnimation")
     val animatedSwipeDownY by animateFloatAsState(targetValue = swipeDownOffsetY, label = "swipeDownAnimation")
 
+    val transformableState = rememberTransformableState { zoomChange, panChange, _ ->
+        val newScale = (scale * zoomChange).coerceIn(1f, 5f)
+        scale = newScale
+        if (scale > 1.05f) {
+            offset += panChange
+        } else {
+            scale = 1f
+            offset = Offset.Zero
+        }
+    }
+
     LaunchedEffect(scale) {
         onZoomChanged(scale > 1.05f)
     }
@@ -189,41 +201,27 @@ private fun ZoomablePreviewImage(
                     }
                 )
             }
-            .pointerInput(item.uri) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    val newScale = (scale * zoom).coerceIn(1f, 5f)
-                    scale = newScale
-                    if (scale > 1f) {
-                        offset += pan
-                    } else {
-                        offset = Offset.Zero
-                    }
+            .transformable(state = transformableState)
+            .pointerInput(item.uri, scale) {
+                if (scale <= 1.05f) {
+                    detectVerticalDragGestures(
+                        onDragStart = { swipeDownOffsetY = 0f },
+                        onVerticalDrag = { change, dragAmount ->
+                            if (dragAmount > 0 || swipeDownOffsetY > 0) {
+                                swipeDownOffsetY = (swipeDownOffsetY + dragAmount).coerceAtLeast(0f)
+                                change.consume()
+                            }
+                        },
+                        onDragEnd = {
+                            if (swipeDownOffsetY > 150f) {
+                                onSwipeDownDismiss()
+                            } else {
+                                swipeDownOffsetY = 0f
+                            }
+                        },
+                        onDragCancel = { swipeDownOffsetY = 0f }
+                    )
                 }
-            }
-            .pointerInput(item.uri) {
-                detectVerticalDragGestures(
-                    onDragStart = {
-                        if (scale <= 1.05f) {
-                            swipeDownOffsetY = 0f
-                        }
-                    },
-                    onVerticalDrag = { change, dragAmount ->
-                        if (scale <= 1.05f && dragAmount > 0) {
-                            swipeDownOffsetY = (swipeDownOffsetY + dragAmount).coerceAtLeast(0f)
-                            change.consume()
-                        }
-                    },
-                    onDragEnd = {
-                        if (swipeDownOffsetY > 150f) {
-                            onSwipeDownDismiss()
-                        } else {
-                            swipeDownOffsetY = 0f
-                        }
-                    },
-                    onDragCancel = {
-                        swipeDownOffsetY = 0f
-                    }
-                )
             }
     ) {
         AsyncImage(

@@ -162,18 +162,14 @@ fun SettingsScreen(
                     .padding(horizontal = 4.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "重命名策略",
+                    text = "重新命名策略",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = if (settings.silentRename) {
-                        "免授權彈窗模式 (自動轉存 PicBumper 副本，極速順暢)"
-                    } else {
-                        "系統授權彈窗模式 (保持原檔案 URI)"
-                    },
+                    text = "系統依照是否授權，自動選擇是否彈窗",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

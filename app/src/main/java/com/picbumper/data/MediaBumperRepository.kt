@@ -242,15 +242,36 @@ class MediaBumperRepository(private val context: Context) {
             }
         }
 
-        return try {
+        // 1. Try MediaStore contentResolver update
+        try {
             val rows = contentResolver.update(targetUri, values, null, null)
-            if (settings.overrideExif && isExifEligible(mimeType, displayName)) {
-                tryUpdateExif(targetUri, timestampMillis)
+            if (rows > 0) {
+                if (settings.overrideExif && isExifEligible(mimeType, displayName)) {
+                    tryUpdateExif(targetUri, timestampMillis)
+                }
+                return true
             }
-            rows > 0
-        } catch (_: Exception) {
-            false
-        }
+        } catch (_: Exception) {}
+
+        // 2. Fallback to direct File API timestamp modification (for legacy storage / reinstalled app files)
+        try {
+            val path = queryFilePath(targetUri)
+            if (!path.isNullOrBlank()) {
+                val file = File(path)
+                if (file.exists() && file.canWrite()) {
+                    val touched = file.setLastModified(timestampMillis)
+                    if (touched) {
+                        try { contentResolver.update(targetUri, values, null, null) } catch (_: Exception) {}
+                        if (settings.overrideExif && isExifEligible(mimeType, displayName)) {
+                            tryUpdateExif(targetUri, timestampMillis)
+                        }
+                        return true
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        return false
     }
 
     private fun insertImageToAlbum(
@@ -334,6 +355,20 @@ class MediaBumperRepository(private val context: Context) {
 
     private fun deleteSelfOwnedUri(uri: Uri): Boolean {
         val targetUri = toMediaStoreUri(uri) ?: uri
+
+        // 1. Try direct File API deletion first (silent, no OS consent popup)
+        try {
+            val path = queryFilePath(targetUri)
+            if (!path.isNullOrBlank()) {
+                val file = File(path)
+                if (file.exists() && file.delete()) {
+                    try { contentResolver.delete(targetUri, null, null) } catch (_: Exception) {}
+                    return true
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 2. Try MediaStore ContentResolver delete
         return try {
             contentResolver.delete(targetUri, null, null) > 0
         } catch (_: Exception) {

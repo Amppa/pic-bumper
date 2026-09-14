@@ -282,8 +282,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             // Refresh album view immediately so the newly bumped image is at the top
             loadAlbumImages(currentSettings.albumName)
 
-            // Handle fallback delete failures for Directory A items via system delete request
-            val internalPendingUris = result.internalFailedDeleteUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
+            // Handle fallback delete failures for Directory A items via system delete request (only if silentRename is false)
+            val internalPendingUris = if (!currentSettings.silentRename) {
+                result.internalFailedDeleteUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
+            } else {
+                emptyList()
+            }
 
             // Ask for confirmation only when external images are bumped
             if (result.externalUrisToAsk.isNotEmpty()) {
