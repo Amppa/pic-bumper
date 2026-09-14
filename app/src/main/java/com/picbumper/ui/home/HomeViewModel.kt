@@ -392,6 +392,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun deleteSingleItem(uri: Uri) {
+        viewModelScope.launch {
+            val deleted = bumperRepository.deleteSelfOwnedUri(uri)
+            if (!deleted) {
+                val mediaStoreUri = bumperRepository.toMediaStoreUri(uri) ?: uri
+                _uiState.update {
+                    it.copy(systemDeletePendingUris = listOf(mediaStoreUri))
+                }
+            } else {
+                _uiState.update {
+                    it.copy(statusMessage = "已刪除照片")
+                }
+                loadAlbumImages()
+            }
+        }
+    }
+
     fun renameItem(targetUri: Uri, inputName: String) {
         val targetItem = _uiState.value.albumItems.find { it.uri == targetUri } ?: return
 

@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
@@ -66,7 +67,8 @@ fun ImagePreviewDialog(
     initialIndex: Int,
     onDismiss: () -> Unit,
     onBump: (ImageItem) -> Unit,
-    onRename: (ImageItem) -> Unit
+    onRename: (ImageItem) -> Unit,
+    onDelete: (ImageItem) -> Unit
 ) {
     if (items.isEmpty()) return
 
@@ -135,6 +137,7 @@ fun ImagePreviewDialog(
                     showInfo = showInfo,
                     onDismiss = onDismiss,
                     onRename = { onRename(currentItem) },
+                    onDelete = { onDelete(currentItem) },
                     onToggleInfo = { showInfo = !showInfo },
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
@@ -255,6 +258,7 @@ private fun PreviewTopBar(
     showInfo: Boolean,
     onDismiss: () -> Unit,
     onRename: () -> Unit,
+    onDelete: () -> Unit,
     onToggleInfo: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -286,6 +290,13 @@ private fun PreviewTopBar(
             Icon(
                 imageVector = Icons.Default.Edit,
                 contentDescription = "Rename photo",
+                tint = Color.White
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete photo",
                 tint = Color.White
             )
         }
@@ -367,20 +378,20 @@ private fun PreviewBottomBar(
             shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.Black
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
         ) {
             Icon(
                 imageVector = Icons.Default.ArrowUpward,
                 contentDescription = null,
-                tint = Color.Black
+                tint = MaterialTheme.colorScheme.onPrimary
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "置頂",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
     }

@@ -61,6 +61,7 @@ fun HomeScreen(
     var showRenameDialog by remember { mutableStateOf(false) }
     var renameInputName by remember { mutableStateOf("") }
     var renameTargetItem by remember { mutableStateOf<ImageItem?>(null) }
+    var deleteSingleTargetItem by remember { mutableStateOf<ImageItem?>(null) }
     var previewItemUri by remember { mutableStateOf<Uri?>(null) }
 
     val photoItems = remember(uiState.gridEntries) {
@@ -210,6 +211,9 @@ fun HomeScreen(
                                 renameTargetItem = targetItem
                                 renameInputName = targetItem.displayName
                                 showRenameDialog = true
+                            },
+                            onDelete = { targetItem ->
+                                deleteSingleTargetItem = targetItem
                             }
                         )
                     }
@@ -226,6 +230,20 @@ fun HomeScreen(
                     onConfirm = {
                         showDeleteConfirmDialog = false
                         viewModel.deleteCheckedItems()
+                    }
+                )
+            }
+
+            // Dialog: Confirm deleting single photo from preview
+            deleteSingleTargetItem?.let { target ->
+                DeleteConfirmDialog(
+                    checkedCount = 1,
+                    onDismiss = { deleteSingleTargetItem = null },
+                    onConfirm = {
+                        val uriToDelete = target.uri
+                        deleteSingleTargetItem = null
+                        previewItemUri = null
+                        viewModel.deleteSingleItem(uriToDelete)
                     }
                 )
             }

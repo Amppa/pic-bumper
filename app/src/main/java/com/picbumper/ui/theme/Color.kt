@@ -22,7 +22,12 @@ val DarkOnSurface = Color(0xFFE2E2E6)
 val DarkSurfaceVariant = Color(0xFF1E2024)
 val DarkOnSurfaceVariant = Color(0xFFC3C7CF)
 val DarkOutline = Color(0xFF33373E)
+val DarkError = Color(0xFFD32F2F) // Deep solid red (not pink)
+val DarkOnError = Color(0xFFFFFFFF)
+
+val LightError = Color(0xFFD32F2F)
+val LightOnError = Color(0xFFFFFFFF)
 
 val SuccessGreen = Color(0xFF4CAF50)
 val WarningOrange = Color(0xFFFF9800)
-val ErrorRed = Color(0xFFEF5350)
+val ErrorRed = DarkError
