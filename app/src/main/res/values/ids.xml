@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="header_title" type="id" />
+    <item name="tile_image" type="id" />
+    <item name="tile_border" type="id" />
+    <item name="tile_badge" type="id" />
+</resources>

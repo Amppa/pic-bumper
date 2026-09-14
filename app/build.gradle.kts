@@ -63,6 +63,7 @@ dependencies {
 
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.recyclerview)
     implementation(libs.coil.compose)
 
     debugImplementation(libs.androidx.ui.tooling)

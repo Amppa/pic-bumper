@@ -54,6 +54,7 @@ import com.picbumper.ui.home.components.FloatingStatusCapsule
 import com.picbumper.ui.home.components.HomeTopBar
 import com.picbumper.ui.home.components.ImageGridCard
 import com.picbumper.ui.home.components.ImagePreviewDialog
+import com.picbumper.ui.home.components.MemePhotoGrid
 import com.picbumper.ui.home.components.RenameDialog
 import kotlinx.coroutines.delay
 
@@ -161,81 +162,23 @@ fun HomeScreen(
                         }
                     )
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 105.dp),
-                        contentPadding = PaddingValues(start = 2.dp, end = 2.dp, top = 2.dp, bottom = 96.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    MemePhotoGrid(
+                        gridEntries = uiState.gridEntries,
+                        checkedItemUris = uiState.checkedItemUris,
+                        isMultiSelectMode = uiState.isMultiSelectMode,
+                        thumbnailSize = settings.thumbnailSize,
+                        onClick = { item ->
+                            if (uiState.isMultiSelectMode) {
+                                viewModel.toggleItemCheck(item.uri)
+                            } else {
+                                previewItem = item
+                            }
+                        },
+                        onLongClick = { item ->
+                            viewModel.toggleItemCheck(item.uri)
+                        },
                         modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(
-                            items = uiState.gridEntries,
-                            key = { it.id },
-                            span = { entry ->
-                                when (entry) {
-                                    is GridEntry.Header -> GridItemSpan(maxLineSpan)
-                                    is GridEntry.Photo -> GridItemSpan(1)
-                                }
-                            }
-                        ) { entry ->
-                            when (entry) {
-                                is GridEntry.Header -> {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(1.dp)
-                                                .background(Color(0xFF2D2D2D))
-                                        )
-                                        Text(
-                                            text = "${entry.title} (${entry.count} 張)",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.padding(horizontal = 12.dp)
-                                        )
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(1.dp)
-                                                .background(Color(0xFF2D2D2D))
-                                        )
-                                    }
-                                }
-                                is GridEntry.Photo -> {
-                                    val item = entry.item
-                                    val isChecked = uiState.checkedItemUris.contains(item.uri)
-                                    val onClick = remember(item.uriString, uiState.isMultiSelectMode) {
-                                        {
-                                            if (uiState.isMultiSelectMode) {
-                                                viewModel.toggleItemCheck(item.uri)
-                                            } else {
-                                                previewItem = item
-                                            }
-                                        }
-                                    }
-                                    val onLongClick = remember(item.uriString) {
-                                        { viewModel.toggleItemCheck(item.uri) }
-                                    }
-
-                                    ImageGridCard(
-                                        item = item,
-                                        isChecked = isChecked,
-                                        isMultiSelectMode = uiState.isMultiSelectMode,
-                                        thumbnailSize = settings.thumbnailSize,
-                                        context = context,
-                                        onClick = onClick,
-                                        onLongClick = onLongClick
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    )
                 }
             }
 
