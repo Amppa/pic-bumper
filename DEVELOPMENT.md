@@ -26,7 +26,7 @@ PicToTop uses a **Clean Architecture + MVI/MVVM** approach with Unidirectional D
                                    ▼
                       ┌─────────────────────────┐
                       │       Data Layer        │
-                      │  - MediaBumperRepository│ ◄── ContentResolver / MediaStore
+                      │  - MediaRepository│ ◄── ContentResolver / MediaStore
                       │  - SettingsRepository   │ ◄── Jetpack DataStore Preferences
                       └─────────────────────────┘
 ```
@@ -42,7 +42,7 @@ Different OEM galleries and third-party image pickers (such as Bilibili, WeChat,
 - System galleries often sort by `MediaStore.Images.Media.DATE_TAKEN DESC` (milliseconds).
 
 **Implementation**:
-`MediaBumperRepository.kt` writes all three fields simultaneously to the current system epoch:
+`MediamediaRepository\.kt` writes all three fields simultaneously to the current system epoch:
 ```kotlin
 values.put(MediaStore.Images.Media.DATE_ADDED, timestampSec)
 values.put(MediaStore.Images.Media.DATE_MODIFIED, timestampSec)
@@ -107,16 +107,16 @@ pic-to-top/
 ├── app/
 │   ├── src/main/
 │   │   ├── AndroidManifest.xml
-│   │   └── java/com/picbumper/
+│   │   └── java/com/pictotop/
 │   │       ├── MainActivity.kt               # Entry point, navigation, and IntentSender handling
 │   │       ├── PicToTopApplication.kt         # Application class & Coil ImageLoaderFactory
 │   │       ├── data/
-│   │       │   ├── MediaBumperRepository.kt   # MediaStore insertion, stream copy, EXIF, File API deletion
-│   │       │   ├── SettingsRepository.kt      # DataStore Preferences persistence
+│   │       │   ├── MediamediaRepository\.kt   # MediaStore insertion, stream copy, EXIF, File API deletion
+│   │       │   ├── SettingsmediaRepository\.kt      # DataStore Preferences persistence
 │   │       │   └── fetcher/
 │   │       │       └── MediaStoreThumbnailFetcher.kt # Optimized thumbnail fetcher
 │   │       ├── domain/model/
-│   │       │   ├── BumpSettings.kt            # Settings data model and thumbnail size preference
+│   │       │   ├── AlbumSettings.kt            # Settings data model and thumbnail size preference
 │   │       │   └── ImageItem.kt               # @Immutable media item model with metadata
 │   │       ├── ui/
 │   │       │   ├── home/

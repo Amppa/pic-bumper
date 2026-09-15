@@ -5,9 +5,9 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pictotop.data.BumpResult
-import com.pictotop.data.MediaBumperRepository
+import com.pictotop.data.MediaRepository
 import com.pictotop.data.SettingsRepository
-import com.pictotop.domain.model.BumpSettings
+import com.pictotop.domain.model.AlbumSettings
 import com.pictotop.domain.model.ImageItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -47,13 +47,13 @@ data class HomeUiState(
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val bumperRepository = MediaBumperRepository(application)
+    private val mediaRepository = MediaRepository(application)
     private val settingsRepository = SettingsRepository(application)
 
-    val settings: StateFlow<BumpSettings> = settingsRepository.settingsFlow.stateIn(
+    val settings: StateFlow<AlbumSettings> = settingsRepository.settingsFlow.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = BumpSettings()
+        initialValue = AlbumSettings()
     )
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -69,7 +69,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadAlbumImages(albumName: String = settings.value.albumName, showFeedback: Boolean = false) {
         viewModelScope.launch {
-            val items = bumperRepository.loadAlbumImages(albumName)
+            val items = mediaRepository.loadAlbumImages(albumName)
             val refreshedAt = System.currentTimeMillis()
             val entries = buildGridEntries(items, refreshedAt)
             _uiState.update {
@@ -127,7 +127,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun processIncomingUris(
         urisToProcess: List<Uri>,
         accumulatedItems: List<ImageItem>,
-        currentSettings: BumpSettings
+        currentSettings: AlbumSettings
     ) {
         if (urisToProcess.isEmpty()) {
             _uiState.update { it.copy(isProcessing = false, pendingCollision = null) }
@@ -140,7 +140,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val nextUri = urisToProcess.first()
         val remainingUris = urisToProcess.drop(1)
 
-        val resolvedItem = bumperRepository.resolveImageItems(listOf(nextUri), currentSettings.albumName).firstOrNull()
+        val resolvedItem = mediaRepository.resolveImageItems(listOf(nextUri), currentSettings.albumName).firstOrNull()
         if (resolvedItem == null) {
             processIncomingUris(remainingUris, accumulatedItems, currentSettings)
             return
@@ -151,7 +151,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         if (existingDuplicate != null) {
-            val dateModified = bumperRepository.queryDateModified(nextUri)
+            val dateModified = mediaRepository.queryDateModified(nextUri)
             val collisionInfo = DuplicateCollisionInfo(
                 existingItem = existingDuplicate,
                 newUri = nextUri,
@@ -196,7 +196,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(pendingCollision = null, isProcessing = true) }
         viewModelScope.launch {
             val currentSettings = settings.value
-            val newUri = bumperRepository.replaceExistingImageInAlbum(
+            val newUri = mediaRepository.replaceExistingImageInAlbum(
                 existingUri = collision.existingItem.uri,
                 newSourceUri = collision.newUri,
                 displayName = collision.newDisplayName,
@@ -277,14 +277,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _uiState.update { it.copy(isProcessing = true, statusMessage = null) }
             val currentSettings = settings.first()
-            val result = bumperRepository.bumpImages(items, currentSettings)
+            val result = mediaRepository.bumpImages(items, currentSettings)
 
             // Refresh album view immediately so the newly bumped image is at the top
             loadAlbumImages(currentSettings.albumName)
 
             // Handle fallback delete failures for Directory A items via system delete request (only if silentRename is false)
             val internalPendingUris = if (!currentSettings.silentRename) {
-                result.internalFailedDeleteUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
+                result.internalFailedDeleteUris.mapNotNull { mediaRepository.toMediaStoreUri(it) }
             } else {
                 emptyList()
             }
@@ -320,7 +320,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val remainingUris = mutableListOf<Uri>()
 
             for (uri in uris) {
-                val deleted = bumperRepository.deleteExternalOriginal(uri)
+                val deleted = mediaRepository.deleteExternalOriginal(uri)
                 if (!deleted) {
                     remainingUris.add(uri)
                 }
@@ -329,7 +329,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             if (remainingUris.isEmpty()) {
                 _uiState.update { it.copy(statusMessage = "原圖已成功刪除") }
             } else {
-                val mediaStoreUris = remainingUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
+                val mediaStoreUris = remainingUris.mapNotNull { mediaRepository.toMediaStoreUri(it) }
                 if (mediaStoreUris.isNotEmpty()) {
                     _uiState.update { it.copy(systemDeletePendingUris = mediaStoreUris) }
                 } else {
@@ -364,14 +364,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val failedUris = mutableListOf<Uri>()
             checkedUris.forEach { uri ->
-                val deleted = bumperRepository.deleteSelfOwnedUri(uri)
+                val deleted = mediaRepository.deleteSelfOwnedUri(uri)
                 if (!deleted) {
                     failedUris.add(uri)
                 }
             }
 
             if (failedUris.isNotEmpty()) {
-                val mediaStoreUris = failedUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
+                val mediaStoreUris = failedUris.mapNotNull { mediaRepository.toMediaStoreUri(it) }
                 _uiState.update {
                     it.copy(
                         checkedItemUris = emptySet(),
@@ -394,9 +394,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteSingleItem(uri: Uri) {
         viewModelScope.launch {
-            val deleted = bumperRepository.deleteSelfOwnedUri(uri)
+            val deleted = mediaRepository.deleteSelfOwnedUri(uri)
             if (!deleted) {
-                val mediaStoreUri = bumperRepository.toMediaStoreUri(uri) ?: uri
+                val mediaStoreUri = mediaRepository.toMediaStoreUri(uri) ?: uri
                 _uiState.update {
                     it.copy(systemDeletePendingUris = listOf(mediaStoreUri))
                 }
@@ -425,7 +425,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             val currentSettings = settings.first()
-            val success = bumperRepository.renameImage(
+            val success = mediaRepository.renameImage(
                 uri = targetUri,
                 newName = finalName,
                 silentCopy = currentSettings.silentRename,
@@ -441,7 +441,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 loadAlbumImages()
             } else {
-                val mediaStoreUri = bumperRepository.toMediaStoreUri(targetUri) ?: targetUri
+                val mediaStoreUri = mediaRepository.toMediaStoreUri(targetUri) ?: targetUri
                 _uiState.update {
                     it.copy(
                         systemWritePendingUris = listOf(mediaStoreUri),
@@ -466,7 +466,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             viewModelScope.launch {
                 val currentSettings = settings.first()
                 val (targetUri, finalName) = pendingAction
-                val renamed = bumperRepository.renameImage(
+                val renamed = mediaRepository.renameImage(
                     uri = targetUri,
                     newName = finalName,
                     silentCopy = currentSettings.silentRename,

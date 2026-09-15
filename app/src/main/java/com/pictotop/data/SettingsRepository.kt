@@ -8,7 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.pictotop.domain.model.BumpSettings
+import com.pictotop.domain.model.AlbumSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -26,7 +26,7 @@ class SettingsRepository(private val context: Context) {
         val THUMBNAIL_SIZE = intPreferencesKey("thumbnail_size")
     }
 
-    val settingsFlow: Flow<BumpSettings> = context.dataStore.data.map { preferences ->
+    val settingsFlow: Flow<AlbumSettings> = context.dataStore.data.map { preferences ->
         val overrideDateAdded = preferences[PreferencesKeys.OVERRIDE_DATE_ADDED] ?: false
         val overrideDateModified = preferences[PreferencesKeys.OVERRIDE_DATE_MODIFIED] ?: true
         val overrideDateTaken = preferences[PreferencesKeys.OVERRIDE_DATE_TAKEN] ?: false
@@ -35,7 +35,7 @@ class SettingsRepository(private val context: Context) {
         val silentRename = preferences[PreferencesKeys.SILENT_RENAME] ?: true
         val thumbnailSize = preferences[PreferencesKeys.THUMBNAIL_SIZE] ?: 360
 
-        BumpSettings(
+        AlbumSettings(
             overrideDateAdded = overrideDateAdded,
             overrideDateModified = overrideDateModified,
             overrideDateTaken = overrideDateTaken,

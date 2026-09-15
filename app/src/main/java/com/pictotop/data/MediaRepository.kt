@@ -12,7 +12,7 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.exifinterface.media.ExifInterface
-import com.pictotop.domain.model.BumpSettings
+import com.pictotop.domain.model.AlbumSettings
 import com.pictotop.domain.model.ImageItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,7 +22,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class MediaBumperRepository(private val context: Context) {
+class MediaRepository(private val context: Context) {
 
     private val contentResolver: ContentResolver get() = context.contentResolver
 
@@ -153,7 +153,7 @@ class MediaBumperRepository(private val context: Context) {
      */
     suspend fun bumpImages(
         items: List<ImageItem>,
-        settings: BumpSettings
+        settings: AlbumSettings
     ): BumpResult = withContext(Dispatchers.IO) {
         val bumpedUris = mutableListOf<Uri>()
         val selfDeletedUris = mutableListOf<Uri>()
@@ -226,7 +226,7 @@ class MediaBumperRepository(private val context: Context) {
         displayName: String,
         timestampSec: Long,
         timestampMillis: Long,
-        settings: BumpSettings
+        settings: AlbumSettings
     ): Boolean {
         val targetUri = toMediaStoreUri(uri) ?: uri
         val mimeType = contentResolver.getType(targetUri) ?: inferMimeType(displayName)
@@ -279,7 +279,7 @@ class MediaBumperRepository(private val context: Context) {
         displayName: String,
         timestampSec: Long,
         timestampMillis: Long,
-        settings: BumpSettings
+        settings: AlbumSettings
     ): Uri? {
         val relativePath = "${Environment.DIRECTORY_PICTURES}/${settings.albumName}/"
         val mimeType = contentResolver.getType(sourceUri) ?: inferMimeType(displayName)
@@ -542,7 +542,7 @@ class MediaBumperRepository(private val context: Context) {
         uri: Uri,
         newName: String,
         silentCopy: Boolean = true,
-        settings: BumpSettings? = null
+        settings: AlbumSettings? = null
     ): Boolean = withContext(Dispatchers.IO) {
         val targetUri = toMediaStoreUri(uri) ?: uri
 
@@ -606,7 +606,7 @@ class MediaBumperRepository(private val context: Context) {
         existingUri: Uri,
         newSourceUri: Uri,
         displayName: String,
-        settings: BumpSettings
+        settings: AlbumSettings
     ): Uri? = withContext(Dispatchers.IO) {
         val timestampSec = System.currentTimeMillis() / 1000
         val timestampMillis = timestampSec * 1000

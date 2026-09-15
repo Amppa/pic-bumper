@@ -1,6 +1,6 @@
 package com.pictotop.domain.model
 
-data class BumpSettings(
+data class AlbumSettings(
     val overrideDateAdded: Boolean = false,
     val overrideDateModified: Boolean = true,
     val overrideDateTaken: Boolean = false,

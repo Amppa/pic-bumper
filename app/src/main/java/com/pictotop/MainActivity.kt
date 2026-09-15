@@ -25,7 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.pictotop.data.MediaBumperRepository
+import com.pictotop.data.MediaRepository
 import com.pictotop.ui.home.HomeScreen
 import com.pictotop.ui.home.HomeViewModel
 import com.pictotop.ui.settings.SettingsScreen
@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
 
     private val homeViewModel: HomeViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
-    private val bumperRepository by lazy { MediaBumperRepository(this) }
+    private val mediaRepository by lazy { MediaRepository(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
                     PicToTopAppContent(
                         homeViewModel = homeViewModel,
                         settingsViewModel = settingsViewModel,
-                        bumperRepository = bumperRepository
+                        mediaRepository = mediaRepository
                     )
                 }
             }
@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
 fun PicToTopAppContent(
     homeViewModel: HomeViewModel,
     settingsViewModel: SettingsViewModel,
-    bumperRepository: MediaBumperRepository
+    mediaRepository: MediaRepository
 ) {
     var currentScreen by remember { mutableStateOf(Screen.HOME) }
     val homeUiState by homeViewModel.uiState.collectAsState()
@@ -92,7 +92,7 @@ fun PicToTopAppContent(
         val pendingUris = homeUiState.systemDeletePendingUris
         if (!pendingUris.isNullOrEmpty()) {
             try {
-                val pendingIntent = bumperRepository.buildDeleteIntentSender(pendingUris)
+                val pendingIntent = mediaRepository.buildDeleteIntentSender(pendingUris)
                 if (pendingIntent != null) {
                     val request = IntentSenderRequest.Builder(pendingIntent.intentSender).build()
                     deleteLauncher.launch(request)
@@ -109,7 +109,7 @@ fun PicToTopAppContent(
         val pendingUris = homeUiState.systemWritePendingUris
         if (!pendingUris.isNullOrEmpty()) {
             try {
-                val pendingIntent = bumperRepository.buildWriteIntentSender(pendingUris)
+                val pendingIntent = mediaRepository.buildWriteIntentSender(pendingUris)
                 if (pendingIntent != null) {
                     val request = IntentSenderRequest.Builder(pendingIntent.intentSender).build()
                     writeLauncher.launch(request)
