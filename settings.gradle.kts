@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "PicBumper"
+rootProject.name = "PicToTop"
 include(":app")

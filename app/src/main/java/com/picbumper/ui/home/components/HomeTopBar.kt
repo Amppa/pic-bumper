@@ -90,7 +90,7 @@ fun HomeTopBar(
             title = {
                 Column {
                     Text(
-                        text = "PicBumper 照片置頂",
+                        text = "PicToTop 照片置頂",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )

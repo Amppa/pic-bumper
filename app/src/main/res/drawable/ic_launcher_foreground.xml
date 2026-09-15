@@ -1,46 +1,26 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="327.68"
-    android:viewportHeight="327.68">
+    android:viewportWidth="512"
+    android:viewportHeight="512">
 
-    <!-- Background (Orange/Yellow) -->
-    <path
-        android:fillColor="#FFB732"
-        android:pathData="M 0,0 h 327.68 v 327.68 h -327.68 z" />
-
-    <!-- 1. Top solid square (Target bumped photo) -->
-    <path
-        android:fillColor="#000000"
-        android:strokeColor="#000000"
-        android:strokeWidth="8"
-        android:strokeLineJoin="round"
-        android:pathData="M 107.04,71.71 h 33.32 a 8.33,8.33 0 0 1 8.33,8.33 v 33.32 a 8.33,8.33 0 0 1 -8.33,8.33 h -33.32 a 8.33,8.33 0 0 1 -8.33,-8.33 v -33.32 a 8.33,8.33 0 0 1 8.33,-8.33 z" />
-
-    <!-- 2. Middle square (White fill with black border) -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:strokeColor="#000000"
-        android:strokeWidth="8"
-        android:strokeLineJoin="round"
-        android:pathData="M 107.04,138.85 h 33.32 a 8.33,8.33 0 0 1 8.33,8.33 v 33.32 a 8.33,8.33 0 0 1 -8.33,8.33 h -33.32 a 8.33,8.33 0 0 1 -8.33,-8.33 v -33.32 a 8.33,8.33 0 0 1 8.33,-8.33 z" />
-
-    <!-- 3. Bottom square (White fill with black border) -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:strokeColor="#000000"
-        android:strokeWidth="8"
-        android:strokeLineJoin="round"
-        android:pathData="M 107.04,205.98 h 33.32 a 8.33,8.33 0 0 1 8.33,8.33 v 33.32 a 8.33,8.33 0 0 1 -8.33,8.33 h -33.32 a 8.33,8.33 0 0 1 -8.33,-8.33 v -33.32 a 8.33,8.33 0 0 1 8.33,-8.33 z" />
-
-    <!-- 4. Arrowhead chevron pointing to top square -->
-    <path
-        android:fillColor="#000000"
-        android:pathData="M 212.52,72.43 a 8.5,8.5 0 0 0 -6.44,0.95 l -37.34,22.36 20.95,38.16 a 8.5,8.5 0 0 0 11.54,3.36 8.5,8.5 0 0 0 3.36,-11.54 l -13.07,-23.80 23.29,-13.94 a 8.5,8.5 0 0 0 2.93,-11.66 8.5,8.5 0 0 0 -5.22,-3.88 z" />
-
-    <!-- 5. Upward arc trajectory -->
-    <path
-        android:fillColor="#000000"
-        android:pathData="M 174.12,231.37 a 8.5,8.5 0 0 0 7.99,9.00 c 27.73,1.68 54.28,-11.24 69.16,-33.95 14.88,-22.71 15.49,-51.66 1.56,-74.95 -13.93,-23.29 -39.97,-37.22 -67.74,-36.60 a 8.5,8.5 0 0 0 -8.29,8.69 a 8.5,8.5 0 0 0 8.71,8.31 c 21.85,-0.49 42.08,10.50 52.73,28.30 10.65,17.81 10.21,39.49 -1.20,56.91 -11.41,17.42 -32.13,27.64 -53.94,26.32 a 8.5,8.5 0 0 0 -8.98,7.97 z" />
-
+    <group
+        android:pivotX="256"
+        android:pivotY="256">
+        <path
+            android:pathData="M237.21,465.85 c-40.029,-3.5254 -82.438,-20.919 -113.83,-46.687 c-37.471,-30.757 -63.641,-74.183 -73.216,-121.49 c-15.42,-76.196 12.946,-155.56 73.216,-204.85 c41.009,-33.538 96.208,-51.04 148.02,-46.932 c76.085,6.0337 140.68,49.457 174.12,117.06 c28.972,58.566 29.011,127.56 0.10562,185.88 c-39.061,78.807 -120.86,124.74 -208.41,117.03 z m43.436,-91.094 v-65.244 l59.003,58.977 l34.493,-34.493 l-117.5,-117.5 l-117.5,117.5 l34.492,34.492 l28.758,-28.745 c15.817,-15.81 29.092,-28.745 29.501,-28.745 c0.409,0 0.74364,29.025 0.74364,64.5 v64.5 h48 z m-109,-165.26 v-26.5 h170 v43 h44 v-87 h-258 v87 h44 z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="46.026"
+                    android:startY="255.99"
+                    android:endX="467.27"
+                    android:endY="255.99"
+                    android:type="linear">
+                    <item android:color="#FFF9C35C" android:offset="0.0" />
+                    <item android:color="#FFF98A5C" android:offset="1.0" />
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
 </vector>

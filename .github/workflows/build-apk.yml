@@ -33,6 +33,6 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PicBumper-Debug-APK
+          name: PicToTop-Debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30

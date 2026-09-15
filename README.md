@@ -1,14 +1,14 @@
-# Pic Bumper 🚀
+# PicToTop 🚀
 
 <p align="center">
-  <img src="art/logo.v2.3.svg" alt="Pic Bumper Logo" width="128" height="128" style="border-radius: 28px;" />
+  <img src="art/arrows1.1op.svg" alt="PicToTop Logo" width="128" height="128" style="border-radius: 28px;" />
 </p>
 
 > **Easily bump any meme to the very top of your photo album in seconds.**
 
 Ever wanted to reply with a meme on **Bilibili**, **WeChat**, or social media, but couldn't find it because the image picker only sorts by the latest photos?
 
-**Pic Bumper** solves this instantly: pick any meme, and bump its time sequence to **"Right Now"**. It immediately becomes the #1 newest photo in your album, ready to post!
+**PicToTop** solves this instantly: pick any meme, and bump its time sequence to **"Right Now"**. It immediately becomes the #1 newest photo in your album, ready to post!
 
 ---
 
@@ -28,7 +28,7 @@ Ever wanted to reply with a meme on **Bilibili**, **WeChat**, or social media, b
 
 ## 📲 How to Use
 
-1. Open **Pic Bumper**.
+1. Open **PicToTop**.
 2. Tap the floating **"+"** button to pick memes from your phone.
 3. Tap any single meme to preview or tap **"置頂" (Bump)**.
 4. Done! Switch back to Bilibili or your chat app—your meme is now the very first image ready to send.
@@ -37,11 +37,11 @@ Ever wanted to reply with a meme on **Bilibili**, **WeChat**, or social media, b
 
 ## 📥 Download & Install (APK)
 
-You don't need Android Studio or any coding tools to install Pic Bumper!
+You don't need Android Studio or any coding tools to install PicToTop!
 
 1. Head over to the **Actions** tab of this repository on GitHub.
 2. Click on the latest workflow run under **"Build Android APK"**.
-3. Under the **Artifacts** section, download **`PicBumper-Debug-APK`**.
+3. Under the **Artifacts** section, download **`PicToTop-Debug-APK`**.
 4. Unzip the downloaded file and install `app-debug.apk` directly on your Android phone!
 
 ---
