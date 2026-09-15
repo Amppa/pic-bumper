@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.picbumper"
+    namespace = "com.pictotop"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.picbumper"
+        applicationId = "com.pictotop"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

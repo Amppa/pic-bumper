@@ -1,0 +1,507 @@
+package com.pictotop.ui.home
+
+import android.app.Application
+import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.pictotop.data.BumpResult
+import com.pictotop.data.MediaBumperRepository
+import com.pictotop.data.SettingsRepository
+import com.pictotop.domain.model.BumpSettings
+import com.pictotop.domain.model.ImageItem
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+const val RECENT_THRESHOLD_SECONDS = 30 * 60L // 30 minutes
+
+data class DuplicateCollisionInfo(
+    val existingItem: ImageItem,
+    val newUri: Uri,
+    val newDisplayName: String,
+    val newSize: Long,
+    val newDateModified: Long,
+    val remainingUris: List<Uri>,
+    val accumulatedItemsToBump: List<ImageItem>
+)
+
+data class HomeUiState(
+    val albumItems: List<ImageItem> = emptyList(),
+    val gridEntries: List<GridEntry> = emptyList(),
+    val checkedItemUris: Set<Uri> = emptySet(),
+    val isMultiSelectMode: Boolean = false,
+    val isProcessing: Boolean = false,
+    val statusMessage: String? = null,
+    val externalUrisToAskDelete: List<Uri>? = null,
+    val systemDeletePendingUris: List<Uri>? = null,
+    val systemWritePendingUris: List<Uri>? = null,
+    val pendingRenameAction: Pair<Uri, String>? = null,
+    val pendingCollision: DuplicateCollisionInfo? = null,
+    val lastRefreshedAt: Long = System.currentTimeMillis()
+)
+
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val bumperRepository = MediaBumperRepository(application)
+    private val settingsRepository = SettingsRepository(application)
+
+    val settings: StateFlow<BumpSettings> = settingsRepository.settingsFlow.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = BumpSettings()
+    )
+
+    private val _uiState = MutableStateFlow(HomeUiState())
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            settings.collect { currentSettings ->
+                loadAlbumImages(currentSettings.albumName)
+            }
+        }
+    }
+
+    fun loadAlbumImages(albumName: String = settings.value.albumName, showFeedback: Boolean = false) {
+        viewModelScope.launch {
+            val items = bumperRepository.loadAlbumImages(albumName)
+            val refreshedAt = System.currentTimeMillis()
+            val entries = buildGridEntries(items, refreshedAt)
+            _uiState.update {
+                it.copy(
+                    albumItems = items,
+                    gridEntries = entries,
+                    checkedItemUris = emptySet(),
+                    isMultiSelectMode = false,
+                    lastRefreshedAt = refreshedAt,
+                    statusMessage = if (showFeedback) "相簿已更新" else it.statusMessage
+                )
+            }
+        }
+    }
+
+    private fun buildGridEntries(items: List<ImageItem>, lastRefreshedAt: Long): List<GridEntry> {
+        if (items.isEmpty()) return emptyList()
+        val threshold = (lastRefreshedAt / 1000) - RECENT_THRESHOLD_SECONDS
+        val recent = items.filter { it.dateModified >= threshold }
+        val older = items.filter { it.dateModified < threshold }
+
+        val entries = mutableListOf<GridEntry>()
+        if (recent.isNotEmpty()) {
+            entries.add(GridEntry.Header(title = "30分鐘以內照片", count = recent.size, id = "header_recent"))
+            recent.forEach { item ->
+                entries.add(GridEntry.Photo(item = item))
+            }
+        }
+        if (older.isNotEmpty()) {
+            entries.add(GridEntry.Header(title = "30分鐘以前的照片", count = older.size, id = "header_older"))
+            older.forEach { item ->
+                entries.add(GridEntry.Photo(item = item))
+            }
+        }
+        return entries
+    }
+
+    /**
+     * Triggered when the user taps the floating [+] button and selects external images.
+     * Checks for filename collisions in target album before copying.
+     */
+    fun onNewImagesSelected(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isProcessing = true, statusMessage = null) }
+            val currentSettings = settings.value
+            processIncomingUris(
+                urisToProcess = uris,
+                accumulatedItems = emptyList(),
+                currentSettings = currentSettings
+            )
+        }
+    }
+
+    private suspend fun processIncomingUris(
+        urisToProcess: List<Uri>,
+        accumulatedItems: List<ImageItem>,
+        currentSettings: BumpSettings
+    ) {
+        if (urisToProcess.isEmpty()) {
+            _uiState.update { it.copy(isProcessing = false, pendingCollision = null) }
+            if (accumulatedItems.isNotEmpty()) {
+                bumpItemsInternal(accumulatedItems)
+            }
+            return
+        }
+
+        val nextUri = urisToProcess.first()
+        val remainingUris = urisToProcess.drop(1)
+
+        val resolvedItem = bumperRepository.resolveImageItems(listOf(nextUri), currentSettings.albumName).firstOrNull()
+        if (resolvedItem == null) {
+            processIncomingUris(remainingUris, accumulatedItems, currentSettings)
+            return
+        }
+
+        val existingDuplicate = _uiState.value.albumItems.find {
+            it.displayName.equals(resolvedItem.displayName, ignoreCase = true)
+        }
+
+        if (existingDuplicate != null) {
+            val dateModified = bumperRepository.queryDateModified(nextUri)
+            val collisionInfo = DuplicateCollisionInfo(
+                existingItem = existingDuplicate,
+                newUri = nextUri,
+                newDisplayName = resolvedItem.displayName,
+                newSize = resolvedItem.size,
+                newDateModified = dateModified,
+                remainingUris = remainingUris,
+                accumulatedItemsToBump = accumulatedItems
+            )
+            _uiState.update {
+                it.copy(
+                    isProcessing = false,
+                    pendingCollision = collisionInfo
+                )
+            }
+        } else {
+            processIncomingUris(remainingUris, accumulatedItems + resolvedItem, currentSettings)
+        }
+    }
+
+    fun resolveCollisionKeepBoth() {
+        val collision = _uiState.value.pendingCollision ?: return
+        _uiState.update { it.copy(pendingCollision = null, isProcessing = true) }
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            val resolvedItem = ImageItem(
+                uri = collision.newUri,
+                displayName = collision.newDisplayName,
+                size = collision.newSize,
+                isFromDirectoryA = false
+            )
+            processIncomingUris(
+                urisToProcess = collision.remainingUris,
+                accumulatedItems = collision.accumulatedItemsToBump + resolvedItem,
+                currentSettings = currentSettings
+            )
+        }
+    }
+
+    fun resolveCollisionReplace() {
+        val collision = _uiState.value.pendingCollision ?: return
+        _uiState.update { it.copy(pendingCollision = null, isProcessing = true) }
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            val newUri = bumperRepository.replaceExistingImageInAlbum(
+                existingUri = collision.existingItem.uri,
+                newSourceUri = collision.newUri,
+                displayName = collision.newDisplayName,
+                settings = currentSettings
+            )
+            loadAlbumImages(currentSettings.albumName)
+
+            val updatedAccumulated = collision.accumulatedItemsToBump
+            if (newUri != null) {
+                _uiState.update { it.copy(statusMessage = "已將相簿內既有檔案覆蓋取代") }
+            }
+            processIncomingUris(
+                urisToProcess = collision.remainingUris,
+                accumulatedItems = updatedAccumulated,
+                currentSettings = currentSettings
+            )
+        }
+    }
+
+    fun resolveCollisionSkip() {
+        val collision = _uiState.value.pendingCollision ?: return
+        _uiState.update { it.copy(pendingCollision = null, isProcessing = true) }
+        viewModelScope.launch {
+            val currentSettings = settings.value
+            processIncomingUris(
+                urisToProcess = collision.remainingUris,
+                accumulatedItems = collision.accumulatedItemsToBump,
+                currentSettings = currentSettings
+            )
+        }
+    }
+
+
+    fun toggleItemCheck(uri: Uri) {
+        _uiState.update { current ->
+            val newChecked = current.checkedItemUris.toMutableSet()
+            if (newChecked.contains(uri)) {
+                newChecked.remove(uri)
+            } else {
+                newChecked.add(uri)
+            }
+            current.copy(
+                checkedItemUris = newChecked,
+                isMultiSelectMode = newChecked.isNotEmpty()
+            )
+        }
+    }
+
+    fun clearMultiSelect() {
+        _uiState.update {
+            it.copy(
+                isMultiSelectMode = false,
+                checkedItemUris = emptySet()
+            )
+        }
+    }
+
+    fun clearStatusMessage() {
+        _uiState.update { it.copy(statusMessage = null) }
+    }
+
+    fun bumpCheckedItems() {
+        val checkedUris = _uiState.value.checkedItemUris
+        val itemsToBump = _uiState.value.albumItems.filter { checkedUris.contains(it.uri) }
+        if (itemsToBump.isNotEmpty()) {
+            bumpItemsInternal(itemsToBump)
+        }
+    }
+
+    fun bumpSingleItem(uri: Uri) {
+        val item = _uiState.value.albumItems.find { it.uri == uri }
+        if (item != null) {
+            bumpItemsInternal(listOf(item))
+        }
+    }
+
+    private fun bumpItemsInternal(items: List<ImageItem>) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isProcessing = true, statusMessage = null) }
+            val currentSettings = settings.first()
+            val result = bumperRepository.bumpImages(items, currentSettings)
+
+            // Refresh album view immediately so the newly bumped image is at the top
+            loadAlbumImages(currentSettings.albumName)
+
+            // Handle fallback delete failures for Directory A items via system delete request (only if silentRename is false)
+            val internalPendingUris = if (!currentSettings.silentRename) {
+                result.internalFailedDeleteUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
+            } else {
+                emptyList()
+            }
+
+            // Ask for confirmation only when external images are bumped
+            if (result.externalUrisToAsk.isNotEmpty()) {
+                _uiState.update {
+                    it.copy(
+                        isProcessing = false,
+                        isMultiSelectMode = false,
+                        checkedItemUris = emptySet(),
+                        statusMessage = "已將 ${result.bumpedUris.size} 張照片置頂",
+                        externalUrisToAskDelete = result.externalUrisToAsk,
+                        systemDeletePendingUris = internalPendingUris.ifEmpty { null }
+                    )
+                }
+            } else {
+                if (internalPendingUris.isNotEmpty()) {
+                    _uiState.update {
+                        it.copy(systemDeletePendingUris = internalPendingUris)
+                    }
+                }
+                finishBumpCycle(result.bumpedUris.size)
+            }
+        }
+    }
+
+    fun onConfirmExternalDelete() {
+        val uris = _uiState.value.externalUrisToAskDelete ?: return
+        _uiState.update { it.copy(externalUrisToAskDelete = null) }
+
+        viewModelScope.launch {
+            val remainingUris = mutableListOf<Uri>()
+
+            for (uri in uris) {
+                val deleted = bumperRepository.deleteExternalOriginal(uri)
+                if (!deleted) {
+                    remainingUris.add(uri)
+                }
+            }
+
+            if (remainingUris.isEmpty()) {
+                _uiState.update { it.copy(statusMessage = "原圖已成功刪除") }
+            } else {
+                val mediaStoreUris = remainingUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
+                if (mediaStoreUris.isNotEmpty()) {
+                    _uiState.update { it.copy(systemDeletePendingUris = mediaStoreUris) }
+                } else {
+                    _uiState.update { it.copy(statusMessage = "已置頂，但部分原圖受系統保護無法刪除") }
+                }
+            }
+        }
+    }
+
+    fun onDismissExternalDelete() {
+        _uiState.update { it.copy(externalUrisToAskDelete = null) }
+    }
+
+    fun onSystemDeleteFinished(success: Boolean = true) {
+        _uiState.update {
+            it.copy(
+                systemDeletePendingUris = null,
+                statusMessage = if (success) "原圖已成功刪除" else "已置頂，但部分原圖受系統保護無法刪除"
+            )
+        }
+        loadAlbumImages()
+    }
+
+    /**
+     * Delete checked items from album. Self-owned items in Directory A are deleted silently.
+     * Items from previous installations or external sources will trigger system delete confirmation.
+     */
+    fun deleteCheckedItems() {
+        val checkedUris = _uiState.value.checkedItemUris
+        if (checkedUris.isEmpty()) return
+
+        viewModelScope.launch {
+            val failedUris = mutableListOf<Uri>()
+            checkedUris.forEach { uri ->
+                val deleted = bumperRepository.deleteSelfOwnedUri(uri)
+                if (!deleted) {
+                    failedUris.add(uri)
+                }
+            }
+
+            if (failedUris.isNotEmpty()) {
+                val mediaStoreUris = failedUris.mapNotNull { bumperRepository.toMediaStoreUri(it) }
+                _uiState.update {
+                    it.copy(
+                        checkedItemUris = emptySet(),
+                        isMultiSelectMode = false,
+                        systemDeletePendingUris = mediaStoreUris.ifEmpty { failedUris }
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        checkedItemUris = emptySet(),
+                        isMultiSelectMode = false,
+                        statusMessage = "已刪除選取的圖片"
+                    )
+                }
+                loadAlbumImages()
+            }
+        }
+    }
+
+    fun deleteSingleItem(uri: Uri) {
+        viewModelScope.launch {
+            val deleted = bumperRepository.deleteSelfOwnedUri(uri)
+            if (!deleted) {
+                val mediaStoreUri = bumperRepository.toMediaStoreUri(uri) ?: uri
+                _uiState.update {
+                    it.copy(systemDeletePendingUris = listOf(mediaStoreUri))
+                }
+            } else {
+                _uiState.update {
+                    it.copy(statusMessage = "已刪除照片")
+                }
+                loadAlbumImages()
+            }
+        }
+    }
+
+    fun renameItem(targetUri: Uri, inputName: String) {
+        val targetItem = _uiState.value.albumItems.find { it.uri == targetUri } ?: return
+
+        val trimmedName = inputName.trim()
+        if (trimmedName.isBlank()) return
+
+        // Preserve file extension if user did not include it
+        val oldExt = targetItem.displayName.substringAfterLast('.', "")
+        val finalName = if (oldExt.isNotEmpty() && !trimmedName.endsWith(".$oldExt", ignoreCase = true)) {
+            "$trimmedName.$oldExt"
+        } else {
+            trimmedName
+        }
+
+        viewModelScope.launch {
+            val currentSettings = settings.first()
+            val success = bumperRepository.renameImage(
+                uri = targetUri,
+                newName = finalName,
+                silentCopy = currentSettings.silentRename,
+                settings = currentSettings
+            )
+            if (success) {
+                _uiState.update {
+                    it.copy(
+                        checkedItemUris = emptySet(),
+                        isMultiSelectMode = false,
+                        statusMessage = "已將檔案重命名為 $finalName"
+                    )
+                }
+                loadAlbumImages()
+            } else {
+                val mediaStoreUri = bumperRepository.toMediaStoreUri(targetUri) ?: targetUri
+                _uiState.update {
+                    it.copy(
+                        systemWritePendingUris = listOf(mediaStoreUri),
+                        pendingRenameAction = Pair(targetUri, finalName)
+                    )
+                }
+            }
+        }
+    }
+
+
+    fun onSystemWriteFinished(success: Boolean) {
+        val pendingAction = _uiState.value.pendingRenameAction
+        _uiState.update {
+            it.copy(
+                systemWritePendingUris = null,
+                pendingRenameAction = null
+            )
+        }
+
+        if (success && pendingAction != null) {
+            viewModelScope.launch {
+                val currentSettings = settings.first()
+                val (targetUri, finalName) = pendingAction
+                val renamed = bumperRepository.renameImage(
+                    uri = targetUri,
+                    newName = finalName,
+                    silentCopy = currentSettings.silentRename,
+                    settings = currentSettings
+                )
+                if (renamed) {
+                    _uiState.update {
+                        it.copy(
+                            checkedItemUris = emptySet(),
+                            isMultiSelectMode = false,
+                            statusMessage = "已將檔案重命名為 $finalName"
+                        )
+                    }
+                    loadAlbumImages()
+                } else {
+                    _uiState.update {
+                        it.copy(statusMessage = "重命名失敗，請確認檔案存取權限")
+                    }
+                }
+            }
+        } else if (!success) {
+            _uiState.update {
+                it.copy(statusMessage = "重命名已取消或失敗")
+            }
+        }
+    }
+
+    private fun finishBumpCycle(bumpedCount: Int) {
+        _uiState.update {
+            it.copy(
+                isProcessing = false,
+                isMultiSelectMode = false,
+                checkedItemUris = emptySet(),
+                statusMessage = "已成功置頂 $bumpedCount 張照片"
+            )
+        }
+    }
+}
