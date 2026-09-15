@@ -65,7 +65,7 @@ fun SettingsScreen(
     ) { treeUri: Uri? ->
         if (treeUri != null) {
             val docId = DocumentsContract.getTreeDocumentId(treeUri)
-            val folderName = docId.substringAfterLast(':').substringAfterLast('/').ifEmpty { "PicBumper" }
+            val folderName = docId.substringAfterLast(':').substringAfterLast('/').ifEmpty { "PicToTop" }
             viewModel.setAlbumName(folderName)
         }
     }

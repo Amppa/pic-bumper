@@ -8,11 +8,11 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import com.picbumper.data.fetcher.MediaStoreThumbnailFetcher
 
-class PicBumperApplication : Application(), ImageLoaderFactory {
+class PicToTopApplication : Application(), ImageLoaderFactory {
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)
             .components {
-                add(MediaStoreThumbnailFetcher.Factory(this@PicBumperApplication))
+                add(MediaStoreThumbnailFetcher.Factory(this@PicToTopApplication))
             }
             .memoryCache {
                 MemoryCache.Builder(this)
@@ -31,4 +31,3 @@ class PicBumperApplication : Application(), ImageLoaderFactory {
             .build()
     }
 }
-

@@ -12,7 +12,7 @@ import com.picbumper.domain.model.BumpSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "pic_bumper_settings")
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "pictotop_settings")
 
 class SettingsRepository(private val context: Context) {
 
@@ -31,7 +31,7 @@ class SettingsRepository(private val context: Context) {
         val overrideDateModified = preferences[PreferencesKeys.OVERRIDE_DATE_MODIFIED] ?: true
         val overrideDateTaken = preferences[PreferencesKeys.OVERRIDE_DATE_TAKEN] ?: false
         val overrideExif = preferences[PreferencesKeys.OVERRIDE_EXIF] ?: false
-        val albumName = preferences[PreferencesKeys.ALBUM_NAME] ?: "PicBumper"
+        val albumName = preferences[PreferencesKeys.ALBUM_NAME] ?: "PicToTop"
         val silentRename = preferences[PreferencesKeys.SILENT_RENAME] ?: true
         val thumbnailSize = preferences[PreferencesKeys.THUMBNAIL_SIZE] ?: 360
 
@@ -71,7 +71,7 @@ class SettingsRepository(private val context: Context) {
     }
 
     suspend fun updateAlbumName(name: String) {
-        val sanitized = name.trim().ifEmpty { "PicBumper" }
+        val sanitized = name.trim().ifEmpty { "PicToTop" }
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.ALBUM_NAME] = sanitized
         }

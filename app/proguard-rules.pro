@@ -1,1 +1,1 @@
-# PicBumper Proguard Rules
+# PicToTop Proguard Rules

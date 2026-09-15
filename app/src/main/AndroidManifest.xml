@@ -16,7 +16,7 @@
         android:maxSdkVersion="28" />
 
     <application
-        android:name=".PicBumperApplication"
+        android:name=".PicToTopApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"

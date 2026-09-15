@@ -30,7 +30,7 @@ import com.picbumper.ui.home.HomeScreen
 import com.picbumper.ui.home.HomeViewModel
 import com.picbumper.ui.settings.SettingsScreen
 import com.picbumper.ui.settings.SettingsViewModel
-import com.picbumper.ui.theme.PicBumperTheme
+import com.picbumper.ui.theme.PicToTopTheme
 
 enum class Screen {
     HOME,
@@ -47,12 +47,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            PicBumperTheme {
+            PicToTopTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    PicBumperAppContent(
+                    PicToTopAppContent(
                         homeViewModel = homeViewModel,
                         settingsViewModel = settingsViewModel,
                         bumperRepository = bumperRepository
@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun PicBumperAppContent(
+fun PicToTopAppContent(
     homeViewModel: HomeViewModel,
     settingsViewModel: SettingsViewModel,
     bumperRepository: MediaBumperRepository

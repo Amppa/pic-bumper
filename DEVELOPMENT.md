@@ -1,12 +1,12 @@
 # Developer & AI Agent Technical Documentation
 
-This document contains in-depth architecture details, system compliance strategies, implementation decisions, and guidelines for software engineers and AI assistants maintaining or extending **Pic Bumper**.
+This document contains in-depth architecture details, system compliance strategies, implementation decisions, and guidelines for software engineers and AI assistants maintaining or extending **PicToTop**.
 
 ---
 
 ## 1. System Architecture & Core Mechanics
 
-Pic Bumper uses a **Clean Architecture + MVI/MVVM** approach with Unidirectional Data Flow (UDF).
+PicToTop uses a **Clean Architecture + MVI/MVVM** approach with Unidirectional Data Flow (UDF).
 
 ```
                       ┌─────────────────────────┐
@@ -66,26 +66,26 @@ To avoid out-of-memory errors (OOM) and quality loss, and to retain full GIF/Web
   }
   ```
 
-### D. Scoped Storage & Directory A (`Pictures/PicBumper`) Lifecycle
-- **Directory A (`Pictures/PicBumper`)**: All bumped images are placed into this public album.
+### D. Scoped Storage & Directory A (`Pictures/PicToTop`) Lifecycle
+- **Directory A (`Pictures/PicToTop`)**: All bumped images are placed into this public album.
 - **Media Permissions (`READ_MEDIA_IMAGES` / `READ_EXTERNAL_STORAGE`)**:
-  - Required to read existing images in `Pictures/PicBumper` created by previous app installations (or across re-installs).
+  - Required to read existing images in `Pictures/PicToTop` created by previous app installations (or across re-installs).
   - Automatically requested on startup or manual refresh.
-- **Self-Owned Asset Privilege**: Files created within `Pictures/PicBumper` by the current installation are owned by Pic Bumper under Android Scoped Storage CDD guidelines.
+- **Self-Owned Asset Privilege**: Files created within `Pictures/PicToTop` by the current installation are owned by PicToTop under Android Scoped Storage CDD guidelines.
   - When a self-owned asset already in Directory A is re-bumped, `contentResolver.delete(oldUri, null, null)` executes **silently without any system dialog**.
 - **External Asset Safety & Reinstall Fallback**:
   - Files originating from other directories (e.g., `Downloads`, `DCIM`) or from previous installations where ownership was severed require user consent.
   - Deletions are batched through `MediaStore.createDeleteRequest` (Android 11+ / API 30+) to prompt only once for all external or previous items.
 
 ### E. Memory & GPU Pipeline Optimization (Coil 2.x & Downsampling)
-Thumbnails in `PicBumperApplication.kt` and `ImageGridCard.kt` strictly configure hardware acceleration:
-- **Global ImageLoader**: Configures 20% RAM memory cache, 250MB disk cache, and `.allowHardware(true)` for zero-copy GPU rendering pipeline.
+Thumbnails in `PicToTopApplication.kt` and `ImageGridCard.kt` strictly configure hardware acceleration:
+- **Global ImageLoader**: Configures 25% RAM memory cache, 250MB disk cache, and `.allowHardware(true)` for zero-copy GPU rendering pipeline.
 - **3-Tier Configurable Downsampling**: 100px (ultra-fast), 150px (balanced - default), and 240px (high-res).
 - **Cache Key Invalidation**: `memoryCacheKey("${uri}_${thumbnailSize}")` ensures exact cache resolution matching when switching quality settings.
 - **Zero-RAM Dimension Fallback**: `BitmapFactory.Options(inJustDecodeBounds = true)` parses width/height without allocating bitmap memory.
 
 ### F. Duplicate Import Collision Resolution
-When importing external files with matching filenames in `Pictures/PicBumper`:
+When importing external files with matching filenames in `Pictures/PicToTop`:
 - `DuplicateImportDialog` presents side-by-side thumbnail comparison with file size and modified timestamps.
 - **Keep Both**: Auto-names new file to `name (1).ext`.
 - **Replace**: Deletes old file and overwrites with incoming file.
@@ -103,13 +103,13 @@ The preview dialog (`ImagePreviewDialog.kt`) provides an immersive, conflict-fre
 ## 3. Project Structure
 
 ```
-pic-bumper/
+pic-to-top/
 ├── app/
 │   ├── src/main/
 │   │   ├── AndroidManifest.xml
 │   │   └── java/com/picbumper/
 │   │       ├── MainActivity.kt               # Entry point, navigation, and IntentSender handling
-│   │       ├── PicBumperApplication.kt        # Application class & Coil ImageLoaderFactory
+│   │       ├── PicToTopApplication.kt         # Application class & Coil ImageLoaderFactory
 │   │       ├── data/
 │   │       │   ├── MediaBumperRepository.kt   # MediaStore insertion, stream copy, EXIF, File API deletion
 │   │       │   ├── SettingsRepository.kt      # DataStore Preferences persistence
@@ -166,4 +166,4 @@ Output location:
 
 ### Cloud Build (GitHub Actions)
 Triggered automatically on pushes to `master`/`main` or manually via the GitHub Actions tab.
-Artifacts are stored under `PicBumper-Debug-APK`.
+Artifacts are stored under `PicToTop-Debug-APK`.
